@@ -1,12 +1,13 @@
 // RSVP page. Talks to the Google Apps Script web app in apps-script/Code.gs.
-// Until ENDPOINT is set, the page runs in demo mode with made-up guests.
+// Without ENDPOINT (or with ?demo in the URL) the page runs in demo mode with made-up guests.
 (function () {
   'use strict';
 
   // The web app URL from Deploy > Manage deployments (ends in /exec).
-  var ENDPOINT = '';
+  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwAtKmCJWp4bNxXAGjoBt3RAMbzHJZa6_z9no35ycB9EyyZc2pJugaFBhi0-7uNbg65WA/exec';
 
-  var demo = !ENDPOINT;
+  // Add ?demo to the URL to try the page with made-up guests.
+  var demo = !ENDPOINT || /[?&]demo\b/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
   var lookupForm = $('lookup-form');
   var householdForm = $('household-form');

@@ -22,7 +22,8 @@ Guest names live only in the Google Sheet, never in this repo.
    **Deploy** and copy the **Web app URL** (ends in `/exec`).
 5. **Connect the site.** Give that URL to Claude (or paste it into `ENDPOINT`
    at the top of `rsvp/rsvp.js`) and push. The demo banner disappears and
-   the page uses the real Sheet.
+   the page uses the real Sheet. Add `?demo` to the page URL
+   (`norakevin.com/rsvp/?demo`) to try it with made-up guests anytime.
 
 ## The Guests tab
 
