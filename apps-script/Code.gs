@@ -126,13 +126,12 @@ function save(name, responses) {
 // of that household's rows. Requires an exact full-name match so guessing a
 // last name alone reveals nothing.
 function findHousehold(name) {
-  var parts = normalize(name).split(' ').filter(Boolean);
-  if (parts.length < 2) return { error: 'Please enter your first and last name.' };
-  var wanted = parts.join(' ');
+  var wanted = lookupKey(name);
+  if (wanted.split(' ').length < 2) return { error: 'Please enter your first and last name.' };
 
   var rows = guestRows();
   var matches = rows.filter(function (r) {
-    return personKey(r.values[COL.first], r.values[COL.last]) === wanted;
+    return lookupKey(r.values[COL.first] + ' ' + r.values[COL.last]) === wanted;
   });
   if (matches.length === 0) {
     return { error: "We couldn't find that name. Try the name on your invitation, or text or call us." };
@@ -187,8 +186,17 @@ function normalize(s) {
     .trim();
 }
 
+// Identifies one guest row; keeps suffixes so "Chris Sr" and "Chris Jr" differ.
 function personKey(first, last) {
   return normalize(first + ' ' + last);
+}
+
+// What a guest must type to find their invitation; suffixes are optional.
+var SUFFIXES = ['jr', 'sr', 'ii', 'iii', 'iv'];
+function lookupKey(fullName) {
+  return normalize(fullName).split(' ').filter(function (w) {
+    return w && SUFFIXES.indexOf(w) === -1;
+  }).join(' ');
 }
 
 function normalizeAttending(v) {

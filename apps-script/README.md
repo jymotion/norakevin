@@ -37,6 +37,8 @@ Guest names live only in the Google Sheet, never in this repo.
 - Guests find their invitation by typing the first and last name exactly as
   in the Sheet (capitals, accents and punctuation don't matter). Use the name
   they'd type: "Bob", not "Robert", if that's what he goes by.
+- Jr, Sr, II, III, IV are optional when searching: put "Chris Sr" in First
+  name and guests can still find it by typing "Chris Smith".
 - Two guests with the identical name in different households can't use the
   form; they're told to text or call.
 - For a plus-one whose name you don't know yet, add a row like

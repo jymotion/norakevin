@@ -66,7 +66,9 @@ const guests = [
   ['H1', 'Jordan', 'Sample', '', '', '', ''],
   ['H2', 'Zoë', "O'Brien", '', '', '', ''],
   ['H3', 'Sam', 'Twin', '', '', '', ''],
-  ['H4', 'Sam', 'Twin', '', '', '', '']
+  ['H4', 'Sam', 'Twin', '', '', '', ''],
+  ['H5', 'Pat Sr', 'Example', '', '', '', ''],
+  ['H5', 'Pat Jr', 'Example', '', '', '', '']
 ];
 
 let passed = 0;
@@ -103,6 +105,22 @@ test('unknown name and last name alone reveal nothing', () => {
 test('duplicate names across households are refused', () => {
   const { post } = load(guests);
   assert.match(post({ action: 'lookup', name: 'Sam Twin' }).error, /More than one/);
+});
+
+test('Jr/Sr are optional when looking up, but still separate people', () => {
+  const { post, sheets } = load(guests);
+  for (const name of ['Pat Example', 'Pat Sr Example', 'pat example jr']) {
+    const res = post({ action: 'lookup', name });
+    assert.ok(res.ok, name);
+    assert.deepStrictEqual(res.members.map(m => m.first), ['Pat Sr', 'Pat Jr']);
+  }
+  assert.ok(post({
+    action: 'save', name: 'Pat Example', responses: [
+      { first: 'Pat Sr', last: 'Example', attending: 'yes', meal: 'Fish' },
+      { first: 'Pat Jr', last: 'Example', attending: 'no' }
+    ]
+  }).ok);
+  assert.deepStrictEqual(sheets.Guests.rows.slice(6).map(r => r[3]), ['Yes', 'No']);
 });
 
 test('honeypot blocks bots', () => {
