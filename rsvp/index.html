@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>RSVP · Nora &amp; Kevin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.15rem;
+      line-height: 1.5;
+      color: #222;
+      background: #fff;
+    }
+    main { max-width: 36rem; margin: 0 auto; padding: 1.5rem 0 3rem; }
+    h1 { font-weight: normal; font-size: 2.25rem; margin: 0 0 0.25rem; text-align: center; }
+    .lede { text-align: center; margin: 0 0 2rem; }
+    a { color: #1a4d8f; }
+    label { display: block; font-weight: bold; margin-bottom: 0.35rem; }
+    input[type="text"], select, textarea {
+      width: 100%;
+      font: inherit;
+      padding: 0.7rem 0.8rem;
+      border: 1px solid #666;
+      border-radius: 6px;
+      background: #fff;
+      color: inherit;
+    }
+    textarea { min-height: 4.5rem; resize: vertical; }
+    input:focus, select:focus, textarea:focus, button:focus { outline: 3px solid #1a4d8f; outline-offset: 2px; }
+    button {
+      font: inherit;
+      min-height: 3rem;
+      padding: 0.7rem 1.4rem;
+      border: 0;
+      border-radius: 6px;
+      background: #222;
+      color: #fff;
+      cursor: pointer;
+    }
+    button[disabled] { opacity: 0.6; cursor: wait; }
+    button.link {
+      background: none; color: #1a4d8f; text-decoration: underline; padding: 0.5rem 0; min-height: 2.75rem;
+    }
+    .field { margin-bottom: 1.25rem; }
+    .person {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 1rem 1rem 0.25rem;
+      margin: 0 0 1.25rem;
+    }
+    .person legend { font-size: 1.3rem; padding: 0 0.4rem; }
+    .choices { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+    .choices label {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-weight: normal; margin: 0;
+      min-height: 3rem; padding: 0.5rem 1rem;
+      border: 1px solid #999; border-radius: 6px; cursor: pointer;
+    }
+    .choices input { width: 1.25rem; height: 1.25rem; margin: 0; }
+    .choices label:has(input:checked) { border-color: #222; background: #f2f2f2; outline: 2px solid #222; }
+    .message { padding: 0.9rem 1rem; border-radius: 6px; margin: 0 0 1.25rem; }
+    .message.error { background: #fdecea; color: #7a1a12; border: 1px solid #e0a39c; }
+    .message.success { background: #e9f5ec; color: #1c4d2a; border: 1px solid #9ccaa8; }
+    .demo { background: #fff6d6; border: 1px solid #e3c766; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: 1rem; }
+    .fallback { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #ddd; text-align: center; }
+    .visually-hidden { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>RSVP</h1>
+    <p class="lede"><a href="/">Nora &amp; Kevin</a></p>
+
+    <p class="demo" id="demo-banner" hidden>
+      <strong>Demo mode:</strong> nothing is saved. Try the names <em>Alex Sample</em> or <em>Pat Example</em>.
+    </p>
+
+    <noscript>
+      <p class="message error">This form needs JavaScript. You can text or call us to RSVP instead.</p>
+    </noscript>
+
+    <div id="message" role="alert" hidden></div>
+
+    <form id="lookup-form" hidden>
+      <p>Enter the first and last name of anyone in your household to find your invitation. You'll be able to answer for everyone at once.</p>
+      <div class="field">
+        <label for="name">Your full name</label>
+        <input type="text" id="name" name="name" autocomplete="name" required>
+      </div>
+      <div class="visually-hidden" aria-hidden="true">
+        <label for="website">Leave this empty</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+      <button type="submit">Find my invitation</button>
+    </form>
+
+    <form id="household-form" hidden>
+      <p id="household-intro"></p>
+      <div id="people"></div>
+      <button type="submit">Send RSVP</button>
+      <p><button type="button" class="link" id="start-over">Not you? Search again</button></p>
+    </form>
+
+    <div id="done" hidden>
+      <p><button type="button" id="edit-again">Change our RSVP</button></p>
+    </div>
+
+    <p class="fallback">Prefer not to use the form? You can text or call us to RSVP instead.</p>
+  </main>
+  <script src="rsvp.js"></script>
+</body>
+</html>

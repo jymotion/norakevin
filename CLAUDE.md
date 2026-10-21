@@ -25,15 +25,18 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 2. **No guest data in this repo, ever.** No names, addresses, emails, phone numbers, household codes, or guest lists, not even temporarily. Git history is permanent.
 3. **No home address** on the site, and nothing that signals when the house will be empty.
 4. **Keep the site out of search engines.** Every page gets `<meta name="robots" content="noindex, nofollow">`, and `robots.txt` disallows all.
-5. **No trackers, analytics, ad pixels, or marketing scripts.** The only third-party pieces are the Tally form embed and the outbound Zola registry link.
+5. **No trackers, analytics, ad pixels, or marketing scripts.** The only third-party pieces are the Google Apps Script RSVP backend (or Tally form embed), and the outbound Zola registry link.
 6. **Mobile-first and accessible.** Readable font sizes, strong contrast, large tap targets, alt text on images. Core info (date, place, times) must be readable even if JavaScript fails.
 
 ## RSVPs and address collection
 
-- RSVPs use a **Tally** form (free plan) embedded on the RSVP page. Responses go to a Google Sheet shared with Nora, which is the source of truth for the guest list.
-- Do not enable any form setting that requires respondents to sign in.
-- If per-household RSVP links are used, they prefill names through Tally hidden fields in the URL. Those links are sent to guests directly; they are never stored in this repo.
-- Address collection (before save-the-dates) is a second Tally form feeding the same Sheet.
+- **RSVP is custom and on trial.** Kevin wants to test it; if he isn't confident in it, strip it out and fall back to Tally (or similar).
+  - Page: `rsvp/index.html` + `rsvp/rsvp.js`. Backend: `apps-script/Code.gs`, a Google Apps Script web app bound to the guest Google Sheet (shared with Nora, the source of truth). Setup steps in `apps-script/README.md`.
+  - Guests type their full name; the script returns their whole household, and one page answers for everyone (attending, meal, dietary notes). Revisiting shows current answers so they can edit. No song requests.
+  - `ENDPOINT` in `rsvp/rsvp.js` empty = demo mode with made-up guests, nothing saved.
+  - Tests: `node apps-script/test.js`. After changing `Code.gs`, Kevin must paste it into the Apps Script editor and deploy a new version of the existing deployment.
+- Do not enable any setting that requires respondents to sign in.
+- Address collection (before save-the-dates) can be a Tally form feeding the same Sheet.
 - The RSVP page includes a fallback line telling guests they can text or call to RSVP instead.
 
 ## Registry and gifts
@@ -53,7 +56,7 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 - Home: names, date, location, short welcome
 - Schedule: each event with time, place, dress code
 - Travel & Stay: directions, parking, nearby lodging
-- RSVP: Tally embed plus fallback contact line
+- RSVP: custom form (see above) plus fallback contact line
 - Registry: link to Zola
 - FAQ
 
