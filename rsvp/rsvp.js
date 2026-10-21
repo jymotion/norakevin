@@ -21,14 +21,24 @@
 
   // ---- Server ----
 
+  // Give up on a request that never answers, so the page can't hang. Saving
+  // again is safe: it overwrites the same rows.
+  var TIMEOUT_MS = 30000;
+
   function call(payload) {
     if (demo) return demoCall(payload);
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
     // text/plain keeps this a "simple" request, which Apps Script accepts cross-origin.
     return fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    }).then(function (res) { return res.json(); });
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) { clearTimeout(timer); return data; },
+        function (err) { clearTimeout(timer); throw err; });
   }
 
   // ---- Screens ----
