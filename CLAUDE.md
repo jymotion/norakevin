@@ -43,7 +43,7 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 
 ## Workflow
 
-- Work on a branch, push often, and merge to `main` when a change works. Until the site is announced, merging to `main` and checking the live Pages URL is the preview step.
+- Until the site is announced, Kevin has approved pushing directly to `main` (no PR needed). Merging to `main` and checking the live Pages URL is the preview step.
 - After launch, keep `main` always working. Test changes on a branch first.
 - Small commits with descriptive messages.
 - Record new decisions in this file so future sessions pick them up.
