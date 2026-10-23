@@ -191,6 +191,23 @@ test('nicknames and short forms find the guest, in either direction', () => {
   assert.strictEqual(found('Margaret Byname'), 'Robert+Peg');
   assert.strictEqual(found('Jen De La Cruz'), 'Jennifer');
   assert.strictEqual(found('Jennifer Ann De La Cruz'), 'Jennifer'); // middle name ignored
+  // Capitals don't matter on either side.
+  assert.strictEqual(found('christopher EXAMPLE'), 'Kimberly+Chris');
+  assert.strictEqual(found('JEN de la cruz'), 'Jennifer');
+});
+
+test('nicknames work with a Suffix column and a mixed-case last name in the Sheet', () => {
+  const header = ['Household', 'First name', 'Last name', 'Suffix', 'Attending', 'Message', 'Last updated'];
+  const { post } = load([
+    ['K3', 'Kim', 'DiExample', '', '', '', ''],
+    ['K3', 'Chris', 'DiExample', 'Sr', '', '', ''],
+    ['K3', 'Chris', 'DiExample', 'Jr', '', '', '']
+  ], header);
+  for (const name of ['Christopher Diexample', 'christopher diexample jr', 'KIMBERLY DIEXAMPLE', 'chris diexample']) {
+    const res = post({ action: 'lookup', name });
+    assert.ok(res.ok, name);
+    assert.strictEqual(res.members.length, 3, name);
+  }
 });
 
 test('loose matching still needs the last name and a real first-name link', () => {
