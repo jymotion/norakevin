@@ -11,7 +11,7 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 - RSVP deadline:
 - Meal choices, if any:
 - Plus-one policy:
-- Design direction (Nora approves the look): classic black-on-white, modeled on a Zola-style template Kevin picked. Script "The wedding of" (Monsieur La Doulaise) over spaced serif caps (Cormorant Garamond), mixed-case letter-spaced nav, one big photo. Phones: top bar with menu button and "N&K" monogram, photo first.
+- Design direction (Nora approves the look): classic black-on-white, modeled on a Zola-style template Kevin picked. Script "The wedding of" (Monsieur La Doulaise) over spaced serif caps (Cormorant Garamond), mixed-case letter-spaced nav as a small utility bar at the top left (desktop), one big photo/video. Phones: top bar with menu button and "N&K" monogram, photo first.
 
 ## Stack and hosting
 
