@@ -80,12 +80,15 @@
     people.textContent = '';
     $('note').value = note || '';
     var answered = members.some(function (m) { return m.attending; });
+    var blank = members.some(function (m) { return !m.attending; });
     $('household-intro').textContent = deadlinePassed
       ? 'The RSVP deadline has passed. Here is what we have; text or call us to make changes.'
+      : answered && blank
+        ? "Here's your RSVP so far. Answer for anyone still blank, or change anything, and send it again."
       : answered
         ? "Here's your current RSVP. Change anything you like and send it again."
         : members.length > 1
-          ? 'Please answer for everyone in your party.'
+          ? "Answer for everyone you can. Not sure about someone yet? Leave them blank and come back later."
           : 'Please let us know if you can make it.';
     members.forEach(function (m, i) { people.appendChild(personFields(m, i)); });
     householdForm.querySelector('button[type="submit"]').hidden = !!deadlinePassed;
@@ -119,6 +122,11 @@
     return row;
   }
 
+  // "A", "A and B", "A, B and C"
+  function listNames(names) {
+    return names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+  }
+
   function el(tag, props) {
     var node = document.createElement(tag);
     Object.keys(props || {}).forEach(function (k) { node[k] = props[k]; });
@@ -147,13 +155,16 @@
   householdForm.addEventListener('submit', function (e) {
     e.preventDefault();
     var responses = collect();
-    for (var i = 0; i < responses.length; i++) {
-      if (!responses[i].attending) {
-        var row = people.querySelectorAll('.person')[i];
-        say('Please say whether ' + row.querySelector('.person-name').textContent + ' will attend.');
-        row.querySelector('input').focus();
-        return;
-      }
+    // Anyone left blank can be answered later; only an empty form is refused.
+    var rows = people.querySelectorAll('.person');
+    var pending = [];
+    responses.forEach(function (r, i) {
+      if (!r.attending) pending.push(rows[i].querySelector('.person-name').textContent);
+    });
+    if (pending.length === responses.length) {
+      say('Please choose Accepts or Declines for at least one person.');
+      rows[0].querySelector('input').focus();
+      return;
     }
     busy(householdForm, true);
     say('');
@@ -161,9 +172,11 @@
       .then(function (res) {
         if (!res.ok) return say(res.error);
         var coming = responses.filter(function (r) { return r.attending === 'yes'; }).length;
-        say(coming
-          ? 'Thank you! Your RSVP is saved. We can’t wait to celebrate with you.'
-          : 'Thank you for letting us know. You’ll be missed!', 'success');
+        say(pending.length
+          ? 'Thank you! Your RSVP is saved. Come back anytime to answer for ' + listNames(pending) + '.'
+          : coming
+            ? 'Thank you! Your RSVP is saved. We can’t wait to celebrate with you.'
+            : 'Thank you for letting us know. You’ll be missed!', 'success');
         show(done);
       })
       .catch(function () { say("We couldn't save your RSVP. Please try again, or text or call us."); })
@@ -208,16 +221,17 @@
           members: household.map(function (g) { return { first: g.first, last: g.last, attending: g.attending }; })
         };
       } else {
-        res = { ok: true };
-        household.forEach(function (g) {
+        // Same rules as the real script: blank answers leave that person as they were.
+        var answers = household.map(function (g) {
           var r = req.responses.filter(function (x) { return x.first === g.first && x.last === g.last; })[0];
-          if (!r || !r.attending) res = { ok: false, error: 'Please say whether ' + g.first + ' ' + g.last + ' will attend.' };
+          return r && r.attending;
         });
-        if (res.ok) {
-          household.forEach(function (g) {
-            g.attending = req.responses.filter(function (x) { return x.first === g.first && x.last === g.last; })[0].attending;
-          });
+        if (!answers.some(Boolean)) {
+          res = { ok: false, error: 'Please choose Accepts or Declines for at least one person.' };
+        } else {
+          household.forEach(function (g, i) { if (answers[i]) g.attending = answers[i]; });
           match.message = String(req.message || '').trim();
+          res = { ok: true };
         }
       }
     }

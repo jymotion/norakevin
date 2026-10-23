@@ -169,11 +169,12 @@ test('an optional Suffix column shows after the last name and picks the right pe
   assert.deepStrictEqual(rows.map(r => r[4]), ['Yes', 'No', 'Yes']);
   assert.deepStrictEqual(rows.map(r => r[5]), ['', '', 'Hi']);
   assert.deepStrictEqual(plain(sheets['Responses log'].rows.slice(1).map(r => r[3])), ['Example', 'Example Sr.', 'Example Jr']);
-  // Leaving out a suffix in the answers doesn't count as answering for that person.
-  assert.match(post({ action: 'save', name: 'Kim Example', responses: [
-    { first: 'Kim', last: 'Example', attending: 'yes' },
-    { first: 'Chris', last: 'Example', attending: 'no' }
-  ] }).error, /whether Chris Example Sr\./);
+  // An answer without the suffix doesn't count as answering for either Chris.
+  assert.ok(post({ action: 'save', name: 'Kim Example', responses: [
+    { first: 'Kim', last: 'Example', attending: 'no' },
+    { first: 'Chris', last: 'Example', attending: 'yes' }
+  ] }).ok);
+  assert.deepStrictEqual(sheets.Guests.rows.slice(1).map(r => r[4]), ['No', 'No', 'Yes']);
 });
 
 test('nicknames and short forms find the guest, in either direction', () => {
@@ -288,14 +289,45 @@ test('each household member keeps their own message', () => {
   assert.strictEqual(sheets.Guests.rows[JORDAN][ATT], 'No');
 });
 
-test('save rejects missing members and missing answers without writing', () => {
+test('save needs at least one answer and rejects bad values, without writing', () => {
   const { post, sheets } = load(guests);
-  const alex = { first: 'Alex', last: 'Sample', attending: 'yes' };
-  assert.match(post({ action: 'save', name: 'Alex Sample', responses: [alex] }).error, /whether Jordan/);
-  assert.match(post({ action: 'save', name: 'Alex Sample', responses: both('yes', '') }).error, /whether Jordan/);
+  assert.match(post({ action: 'save', name: 'Alex Sample', responses: both('', '') }).error, /at least one person/);
+  assert.match(post({ action: 'save', name: 'Alex Sample', responses: [], message: 'Hi' }).error, /at least one person/);
   assert.match(post({ action: 'save', name: 'Alex Sample', responses: both('maybe', 'no') }).error, /whether Alex/);
   assert.strictEqual(sheets.Guests.rows[ALEX][ATT], '');
+  assert.strictEqual(sheets.Guests.rows[JORDAN][ATT], '');
   assert.strictEqual(sheets['Responses log'], undefined);
+});
+
+test('guests can answer for some people now and the rest later', () => {
+  const { post, sheets } = load(guests);
+  const rows = sheets.Guests.rows;
+  // Alex is sure; their plus-one Jordan isn't yet.
+  assert.ok(post({ action: 'save', name: 'Alex Sample', responses: both('yes', ''), message: 'Can\'t wait!' }).ok);
+  assert.deepStrictEqual([rows[ALEX][ATT], rows[JORDAN][ATT]], ['Yes', '']);
+  assert.ok(isDate(rows[ALEX][UPD]));
+  assert.strictEqual(rows[JORDAN][UPD], '');
+  assert.strictEqual(sheets['Responses log'].rows.length, 2); // header + Alex only
+  const back = post({ action: 'lookup', name: 'Alex Sample' });
+  assert.deepStrictEqual(back.members.map(m => m.attending), ['yes', '']);
+  // Later, Jordan answers; Alex's answer and message stay.
+  assert.ok(post({ action: 'save', name: 'Alex Sample', responses: both('yes', 'no'), message: 'Can\'t wait!' }).ok);
+  assert.deepStrictEqual([rows[ALEX][ATT], rows[JORDAN][ATT]], ['Yes', 'No']);
+  assert.strictEqual(rows[ALEX][MSG], 'Can\'t wait!');
+  // Leaving someone out of the request entirely also leaves them as they were.
+  assert.ok(post({ action: 'save', name: 'Alex Sample', responses: [{ first: 'Alex', last: 'Sample', attending: 'no' }] }).ok);
+  assert.deepStrictEqual([rows[ALEX][ATT], rows[JORDAN][ATT]], ['No', 'No']);
+});
+
+test('the searcher\'s message is saved even if they only answered for someone else', () => {
+  const { post, sheets } = load(guests);
+  assert.ok(post({ action: 'save', name: 'Alex Sample', responses: both('', 'yes'), message: 'From Alex' }).ok);
+  const rows = sheets.Guests.rows;
+  assert.deepStrictEqual([rows[ALEX][ATT], rows[ALEX][MSG], rows[JORDAN][ATT], rows[JORDAN][MSG]], ['', 'From Alex', 'Yes', '']);
+  assert.deepStrictEqual(plain(sheets['Responses log'].rows.slice(1).map(r => r.slice(2))), [
+    ['Jordan', 'Sample', 'Yes', ''],
+    ['Alex', 'Sample', '', 'From Alex']
+  ]);
 });
 
 test('save cannot touch another household', () => {

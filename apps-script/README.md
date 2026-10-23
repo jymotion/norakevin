@@ -34,6 +34,9 @@ Guest names live only in the Google Sheet, never in this repo.
   Household value is one invitation; any label works (`Smith family`, `H12`).
 - The other columns are filled in by the site. You can also edit them by hand,
   e.g. when someone RSVPs by text. Use `Yes` or `No` in **Attending**.
+- An empty **Attending** cell means that person hasn't answered yet. Guests
+  can answer for some of their household now (say, not the plus-one) and come
+  back later for the rest; people they leave blank aren't touched.
 - **Message** is the optional note to Nora & Kevin. It goes on the row of the
   person whose name was searched, so if Alex RSVPs for the household, Alex's
   row gets the message. Each person who searches keeps their own message.
