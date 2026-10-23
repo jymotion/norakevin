@@ -53,7 +53,7 @@ img { max-width: 100%; display: block; }
 .script {
   font-family: var(--script);
   font-weight: normal;
-  font-size: clamp(4rem, 11vw, 6.5rem);
+  font-size: 1.875rem; /* 30px */
   line-height: 1.3;
   margin: 0;
 }
@@ -62,15 +62,15 @@ img { max-width: 100%; display: block; }
 
 .names {
   font-weight: 400;
-  font-size: clamp(2.1rem, 6vw, 3.4rem);
+  font-size: clamp(2rem, 8vw, 3.75rem); /* 60px, shrinking to fit phones */
   line-height: 1.25;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   margin: 1rem 0 1rem;
 }
 
-.when-where, .countdown {
-  font-size: 1.15rem;
+.when-where {
+  font-size: 1.125rem; /* 18px */
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin: 0;
@@ -223,7 +223,7 @@ main { flex: 1; }
   .hero img, .hero video, .hero-placeholder { aspect-ratio: 4 / 3; }
 
   .masthead { padding-top: 2.5rem; }
-  .when-where, .countdown { font-size: 1.05rem; line-height: 1.8; }
+  .when-where { line-height: 1.8; }
   .when-where span { display: block; }
   .when-where .sep { display: none; }
 

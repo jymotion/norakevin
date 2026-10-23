@@ -21,11 +21,12 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 
 ## Site structure
 
-- Shared styles in `style.css`, shared JS (phone menu, countdown) in `site.js`. Each page is a folder with `index.html` (`/schedule/`, `/travel/`, ...).
+- Shared styles in `style.css`, shared JS (phone menu, home page video) in `site.js`. Each page is a folder with `index.html` (`/schedule/`, `/travel/`, ...).
 - The top bar, masthead and nav are copied into every page (no build step). When the nav changes, update every page and move `aria-current="page"` to the right link.
 - Fonts are self-hosted in `fonts/` (OFL licenses alongside), so pages make no requests to Google Fonts.
 - Home page hero is a silent looping video (`video/hero.mp4`, `video/hero.webm` fallback, `video/hero-poster.jpg`). Kevin wants it non-interactive: no controls, no hover icons, no play/pause; keep `pointer-events: none` and no `controls` attribute. It is trimmed (0.876s to 9.051s) from a sample wedding film of another couple, cutting the parts showing their names and the videographer's watermark. Never commit the untrimmed clip. Swap in Nora & Kevin's own footage if they get some.
-- Date and place appear twice on the home page (masthead and details block) plus `data-date` on the countdown; update all three together.
+- Date and place appear twice on the home page (masthead and details block); update both together. Kevin removed the "N days to go" countdown.
+- Masthead sizes Kevin chose on desktop: "The wedding of" 30px, names 60px (scales down on phones), date/place line 18px. Set in rem in `style.css`.
 
 ## Hard rules
 
