@@ -22,6 +22,16 @@
     });
   }
 
+  // Home page video: starts silently and loops. Visitors whose device asks
+  // for reduced motion see the still poster image instead.
+  var video = document.querySelector('.hero-video');
+  if (video && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    video.muted = true;
+    var playing = video.play();
+    // If the browser refuses (e.g. iPhone Low Power Mode), the poster stays.
+    if (playing && playing.catch) playing.catch(function () {});
+  }
+
   // <p class="countdown" data-date="YYYY-MM-DD" hidden> shows "N days to go!".
   var countdown = document.querySelector('.countdown[data-date]');
   if (countdown && /^\d{4}-\d{2}-\d{2}$/.test(countdown.dataset.date)) {

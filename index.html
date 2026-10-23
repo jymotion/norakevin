@@ -16,10 +16,15 @@
       <a class="monogram" href="/">N&amp;K</a>
     </header>
 
-    <figure class="hero">
-      <!-- TODO: replace with <img src="/images/hero.jpg" alt="Nora and Kevin ..."> -->
-      <div class="hero-placeholder">Photo coming soon</div>
-    </figure>
+    <div class="hero">
+      <!-- Decorative, silent, no controls; site.js starts it. -->
+      <video class="hero-video" poster="/video/hero-poster.jpg"
+        muted loop playsinline preload="none" disablepictureinpicture disableremoteplayback
+        aria-hidden="true" tabindex="-1">
+        <source src="/video/hero.mp4" type="video/mp4">
+        <source src="/video/hero.webm" type="video/webm">
+      </video>
+    </div>
 
     <header class="masthead">
       <p class="script">The wedding of</p>

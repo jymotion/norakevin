@@ -105,7 +105,14 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--ink); outline-o
 /* ---- Photo ---- */
 
 .hero { margin: 0 auto; width: 100%; max-width: 58rem; padding: 0 1rem; }
-.hero img, .hero-placeholder { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.hero img, .hero video, .hero-placeholder { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+
+/* The home page video is decoration only: no controls, no hover icons, and
+   clicks/taps pass straight through it. */
+.hero video { aspect-ratio: 16 / 9; background: #000; pointer-events: none; user-select: none; }
+.hero video::-webkit-media-controls,
+.hero video::-webkit-media-controls-start-playback-button,
+.hero video::-webkit-media-controls-overlay-play-button { display: none !important; -webkit-appearance: none; }
 .hero-placeholder {
   display: grid;
   place-items: center;
@@ -213,7 +220,7 @@ main { flex: 1; }
   .js .site-nav a { font-size: 1.4rem; padding: 0.6rem 1rem; }
 
   .hero { padding: 0; }
-  .hero img, .hero-placeholder { aspect-ratio: 4 / 3; }
+  .hero img, .hero video, .hero-placeholder { aspect-ratio: 4 / 3; }
 
   .masthead { padding-top: 2.5rem; }
   .when-where, .countdown { font-size: 1.05rem; line-height: 1.8; }
