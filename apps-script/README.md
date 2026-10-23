@@ -40,9 +40,17 @@ Guest names live only in the Google Sheet, never in this repo.
 - The script finds columns by their header text, so the order doesn't matter
   and you can add your own columns (addresses, notes) anywhere. Don't rename
   the six headers above. Running `setUp` again adds any that are missing.
-- Guests find their invitation by typing the first and last name exactly as
-  in the Sheet (capitals, accents and punctuation don't matter). Use the name
-  they'd type: "Bob", not "Robert", if that's what he goes by.
+- Guests find their invitation by typing their first and last name.
+  Capitals, accents, punctuation and middle names don't matter. The last name
+  must match what's in the Sheet; the first name can be a common form of it:
+  - Short forms that are the start of the full name match automatically, in
+    either direction (Kim ↔ Kimberly, Chris ↔ Christopher, Jen ↔ Jennifer).
+  - Other nicknames (Bob ↔ Robert, Peggy ↔ Margaret, Bill ↔ William) come
+    from the `NICKNAMES` list near the bottom of `Code.gs`. Add a line there
+    for anything unusual a guest goes by.
+  - An exact name always wins. If a nickname could mean people in two
+    different households, the guest is asked to type the name on their
+    invitation instead.
 - **Suffixes (Jr, Sr, II, III, IV):** add an optional column headed
   **Suffix** and put them there, keeping First name "Chris" and Last name
   "Smith". The site shows "Chris Smith Jr". Guests can type "Chris Smith"

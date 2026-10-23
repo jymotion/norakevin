@@ -176,6 +176,59 @@ test('an optional Suffix column shows after the last name and picks the right pe
   ] }).error, /whether Chris Example Sr\./);
 });
 
+test('nicknames and short forms find the guest, in either direction', () => {
+  const { post } = load([
+    ['N1', 'Kimberly', 'Example', '', '', ''],
+    ['N1', 'Chris', 'Example', '', '', ''],
+    ['N2', 'Robert', 'Byname', '', '', ''],
+    ['N2', 'Peg', 'Byname', '', '', ''],
+    ['N3', 'Jennifer', 'De La Cruz', '', '', '']
+  ]);
+  const found = n => { const r = post({ action: 'lookup', name: n }); return r.ok ? r.members.map(m => m.first).join('+') : r.error; };
+  assert.strictEqual(found('Kim Example'), 'Kimberly+Chris');
+  assert.strictEqual(found('Christopher Example'), 'Kimberly+Chris');
+  assert.strictEqual(found('Bob Byname'), 'Robert+Peg');
+  assert.strictEqual(found('Margaret Byname'), 'Robert+Peg');
+  assert.strictEqual(found('Jen De La Cruz'), 'Jennifer');
+  assert.strictEqual(found('Jennifer Ann De La Cruz'), 'Jennifer'); // middle name ignored
+});
+
+test('loose matching still needs the last name and a real first-name link', () => {
+  const { post } = load([
+    ['N1', 'Kimberly', 'Example', '', '', ''],
+    ['N2', 'Mark', 'Byname', '', '', '']
+  ]);
+  for (const name of ['Ki Example', 'Kimberly Exemple', 'Mike Byname', 'Example Example', 'Byname Byname']) {
+    assert.match(post({ action: 'lookup', name }).error, /couldn't find/, name);
+  }
+});
+
+test('an exact match wins over nicknames; ambiguous nicknames are refused', () => {
+  const { post } = load([
+    ['A', 'Chris', 'Smith', '', '', ''],
+    ['B', 'Christopher', 'Smith', '', '', ''],
+    ['C', 'Christine', 'Jones', '', '', ''],
+    ['D', 'Christopher', 'Jones', '', '', '']
+  ]);
+  assert.deepStrictEqual(post({ action: 'lookup', name: 'Chris Smith' }).members.map(m => m.first), ['Chris']);
+  assert.deepStrictEqual(post({ action: 'lookup', name: 'Christopher Smith' }).members.map(m => m.first), ['Christopher']);
+  assert.match(post({ action: 'lookup', name: 'Chris Jones' }).error, /more than one possible match/);
+});
+
+test('the message goes to the person found by nickname', () => {
+  const { post, sheets } = load([
+    ['N1', 'Kimberly', 'Example', '', '', ''],
+    ['N1', 'Chris', 'Example', '', '', '']
+  ]);
+  const res = post({ action: 'save', name: 'Kim Example', message: 'From Kim', responses: [
+    { first: 'Kimberly', last: 'Example', attending: 'yes' },
+    { first: 'Chris', last: 'Example', attending: 'yes' }
+  ] });
+  assert.ok(res.ok, res.error);
+  assert.deepStrictEqual(sheets.Guests.rows.slice(1).map(r => r[MSG]), ['From Kim', '']);
+  assert.strictEqual(post({ action: 'lookup', name: 'Kim Example' }).message, 'From Kim');
+});
+
 test('honeypot blocks bots', () => {
   const { post } = load(guests);
   assert.strictEqual(post({ action: 'lookup', name: 'Alex Sample', website: 'x' }).ok, false);
