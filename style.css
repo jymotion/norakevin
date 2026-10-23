@@ -134,10 +134,8 @@ main { flex: 1; }
   margin: 0 0 1.5rem;
 }
 
-.details { text-align: center; padding: 3.5rem 1rem 4rem; }
-.details p { margin: 0; letter-spacing: 0.15em; text-transform: uppercase; }
-.details .rule { width: 12rem; height: 1px; background: var(--ink); border: 0; margin: 1.5rem auto; }
-.details .button { margin-top: 2rem; }
+/* The home page ends at the video (desktop) or the masthead (phones). */
+.home .page { padding-bottom: 3rem; }
 
 .button {
   display: inline-block;
