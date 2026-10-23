@@ -97,8 +97,8 @@ test('lookup returns the whole household, with no meal options', () => {
   const res = post({ action: 'lookup', name: '  alex   SAMPLE ' });
   assert.ok(res.ok);
   assert.deepStrictEqual(res.members, [
-    { first: 'Alex', last: 'Sample', attending: '' },
-    { first: 'Jordan', last: 'Sample', attending: '' }
+    { first: 'Alex', last: 'Sample', suffix: '', attending: '' },
+    { first: 'Jordan', last: 'Sample', suffix: '', attending: '' }
   ]);
   assert.strictEqual(res.message, '');
   assert.strictEqual(res.meals, undefined);
@@ -136,6 +136,44 @@ test('Jr/Sr are optional when looking up, but still separate people', () => {
   assert.deepStrictEqual(sheets.Guests.rows.slice(6).map(r => r[ATT]), ['Yes', 'No']);
   // An ambiguous search ("Pat Example") puts the message on the first match.
   assert.deepStrictEqual(sheets.Guests.rows.slice(6).map(r => r[MSG]), ['Hi', '']);
+  // Typing the suffix picks that exact person, in any word order.
+  for (const name of ['Pat Jr Example', 'Pat Example Jr.']) {
+    post({ action: 'save', name, message: 'From Jr', responses: [
+      { first: 'Pat Sr', last: 'Example', attending: 'yes' },
+      { first: 'Pat Jr', last: 'Example', attending: 'no' }
+    ] });
+    assert.deepStrictEqual(sheets.Guests.rows.slice(6).map(r => r[MSG]), ['Hi', 'From Jr'], name);
+  }
+});
+
+test('an optional Suffix column shows after the last name and picks the right person', () => {
+  const header = ['Household', 'First name', 'Last name', 'Suffix', 'Attending', 'Message', 'Last updated'];
+  const { post, sheets } = load([
+    ['H1', 'Kim', 'Example', '', '', '', ''],
+    ['H1', 'Chris', 'Example', 'Sr.', '', '', ''],
+    ['H1', 'Chris', 'Example', 'Jr', '', '', '']
+  ], header);
+  for (const name of ['Chris Example', 'Chris Example Jr', 'Kim Example']) {
+    const res = post({ action: 'lookup', name });
+    assert.ok(res.ok, name);
+    assert.deepStrictEqual(res.members.map(m => [m.first, m.last, m.suffix].join(' ').trim()),
+      ['Kim Example', 'Chris Example Sr.', 'Chris Example Jr']);
+  }
+  const res = post({ action: 'save', name: 'chris example jr', message: 'Hi', responses: [
+    { first: 'Kim', last: 'Example', suffix: '', attending: 'yes' },
+    { first: 'Chris', last: 'Example', suffix: 'Sr.', attending: 'no' },
+    { first: 'Chris', last: 'Example', suffix: 'Jr', attending: 'yes' }
+  ] });
+  assert.ok(res.ok, res.error);
+  const rows = sheets.Guests.rows.slice(1);
+  assert.deepStrictEqual(rows.map(r => r[4]), ['Yes', 'No', 'Yes']);
+  assert.deepStrictEqual(rows.map(r => r[5]), ['', '', 'Hi']);
+  assert.deepStrictEqual(plain(sheets['Responses log'].rows.slice(1).map(r => r[3])), ['Example', 'Example Sr.', 'Example Jr']);
+  // Leaving out a suffix in the answers doesn't count as answering for that person.
+  assert.match(post({ action: 'save', name: 'Kim Example', responses: [
+    { first: 'Kim', last: 'Example', attending: 'yes' },
+    { first: 'Chris', last: 'Example', attending: 'no' }
+  ] }).error, /whether Chris Example Sr\./);
 });
 
 test('honeypot blocks bots', () => {

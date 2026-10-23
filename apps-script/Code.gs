@@ -27,6 +27,8 @@ var FIELDS = {
   message: 'Message',
   updated: 'Last updated'
 };
+// Used when present: Jr, Sr, III... shown after the last name.
+var OPTIONAL_FIELDS = { suffix: 'Suffix' };
 var MAX_MESSAGE_LENGTH = 1000;
 
 // ---- Web app entry points ---------------------------------------------------
@@ -72,6 +74,7 @@ function lookup(name) {
       return {
         first: r.values[col.first],
         last: r.values[col.last],
+        suffix: col.suffix === -1 ? '' : String(r.values[col.suffix] || ''),
         attending: normalizeAttending(r.values[col.attending])
       };
     })
@@ -95,9 +98,10 @@ function save(name, responses, message) {
     var updates = [];
     for (var i = 0; i < found.rows.length; i++) {
       var row = found.rows[i];
-      var key = personKey(row.values[col.first], row.values[col.last]);
-      var resp = responses.filter(function (r) { return personKey(r.first, r.last) === key; })[0];
-      var label = row.values[col.first] + ' ' + row.values[col.last];
+      var label = fullName(row, col);
+      var resp = responses.filter(function (r) {
+        return normalize([r.first, r.last, r.suffix].join(' ')) === normalize(label);
+      })[0];
       if (!resp || (resp.attending !== 'yes' && resp.attending !== 'no')) {
         return { ok: false, error: 'Please say whether ' + label + ' will attend.' };
       }
@@ -113,8 +117,9 @@ function save(name, responses, message) {
       sheet.getRange(u.row.sheetRow, col.attending + 1).setValue(u.attending);
       if (isSelf) sheet.getRange(u.row.sheetRow, col.message + 1).setValue(note);
       sheet.getRange(u.row.sheetRow, col.updated + 1).setValue(now);
-      log.appendRow([now, u.row.values[col.household], u.row.values[col.first], u.row.values[col.last],
-        u.attending, isSelf ? note : '']);
+      var suffix = col.suffix === -1 ? '' : String(u.row.values[col.suffix] || '').trim();
+      log.appendRow([now, u.row.values[col.household], u.row.values[col.first],
+        u.row.values[col.last] + (suffix ? ' ' + suffix : ''), u.attending, isSelf ? note : '']);
     });
     return { ok: true };
   } finally {
@@ -135,7 +140,7 @@ function findHousehold(name) {
   var guests = readGuests();
   var col = guests.col;
   var matches = guests.rows.filter(function (r) {
-    return lookupKey(r.values[col.first] + ' ' + r.values[col.last]) === wanted;
+    return lookupKey(fullName(r, col)) === wanted;
   });
   if (matches.length === 0) {
     return { error: "We couldn't find that name. Try the name on your invitation, or text or call us." };
@@ -144,10 +149,14 @@ function findHousehold(name) {
   if (households.length > 1) {
     return { error: 'More than one guest has that name. Please text or call us to RSVP.' };
   }
+  // "Chris Smith Jr" matches both Chris Jr and Chris Sr; prefer the one whose
+  // name (suffix included, in any order) is exactly what was typed.
+  var typed = sortedWords(name);
+  var exact = matches.filter(function (r) { return sortedWords(fullName(r, col)) === typed; })[0];
   return {
     sheet: guests.sheet,
     col: col,
-    self: matches[0],
+    self: exact || matches[0],
     rows: guests.rows.filter(function (r) { return String(r.values[col.household]) === households[0]; })
   };
 }
@@ -162,6 +171,9 @@ function readGuests() {
   Object.keys(FIELDS).forEach(function (k) {
     col[k] = header.indexOf(headerKey(FIELDS[k]));
     if (col[k] === -1) throw new Error('Guests tab has no "' + FIELDS[k] + '" column. Run setUp() to add it.');
+  });
+  Object.keys(OPTIONAL_FIELDS).forEach(function (k) {
+    col[k] = header.indexOf(headerKey(OPTIONAL_FIELDS[k]));
   });
 
   var rows = [];
@@ -201,9 +213,16 @@ function normalize(s) {
     .trim();
 }
 
-// Identifies one guest row; keeps suffixes so "Chris Sr" and "Chris Jr" differ.
-function personKey(first, last) {
-  return normalize(first + ' ' + last);
+// "First Last Suffix" as shown on the site. Suffixes typed into the First or
+// Last name column instead of a Suffix column also work.
+function fullName(r, col) {
+  var parts = [r.values[col.first], r.values[col.last]];
+  if (col.suffix !== -1) parts.push(r.values[col.suffix]);
+  return parts.map(function (p) { return String(p || '').trim(); }).filter(Boolean).join(' ');
+}
+
+function sortedWords(s) {
+  return normalize(s).split(' ').sort().join(' ');
 }
 
 // What a guest must type to find their invitation; suffixes are optional.

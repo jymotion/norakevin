@@ -99,8 +99,10 @@
     var row = el('div', { className: 'person' });
     row.dataset.first = m.first;
     row.dataset.last = m.last;
+    row.dataset.suffix = m.suffix || '';
     var nameId = 'guest-' + i;
-    row.appendChild(el('span', { className: 'person-name', id: nameId, textContent: m.first + ' ' + m.last }));
+    var fullName = [m.first, m.last, m.suffix].filter(Boolean).join(' ');
+    row.appendChild(el('span', { className: 'person-name', id: nameId, textContent: fullName }));
 
     var choices = el('div', { className: 'choices' });
     choices.setAttribute('role', 'radiogroup');
@@ -129,6 +131,7 @@
       return {
         first: fs.dataset.first,
         last: fs.dataset.last,
+        suffix: fs.dataset.suffix,
         attending: checked ? checked.value : ''
       };
     });
@@ -146,8 +149,9 @@
     var responses = collect();
     for (var i = 0; i < responses.length; i++) {
       if (!responses[i].attending) {
-        say('Please say whether ' + responses[i].first + ' ' + responses[i].last + ' will attend.');
-        people.querySelectorAll('.person')[i].querySelector('input').focus();
+        var row = people.querySelectorAll('.person')[i];
+        say('Please say whether ' + row.querySelector('.person-name').textContent + ' will attend.');
+        row.querySelector('input').focus();
         return;
       }
     }
