@@ -9,7 +9,7 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 - Domain: norakevin.com (apex; www.norakevin.com should redirect to it)
 - Events (ceremony, reception, rehearsal, welcome drinks, etc.):
 - RSVP deadline:
-- Meal choices, if any:
+- Meal choices, if any: none. Guests choose their food at the wedding, so the RSVP doesn't ask (no dietary question either).
 - Plus-one policy:
 - Design direction (Nora approves the look): classic black-on-white, modeled on a Zola-style template Kevin picked. Script "The wedding of" (Monsieur La Doulaise) over spaced serif caps (Cormorant Garamond), mixed-case letter-spaced nav as a small utility bar at the top left (desktop; sticky, full-width white background so it stays readable over the video) with no underlines (none for hover or the current page), one big photo/video. Desktop masthead spacing is tight, matched to a screenshot Kevin provided. Phones: top bar with menu button and "N&K" monogram, photo first.
 
@@ -41,7 +41,8 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 
 - **RSVP is custom and on trial.** Kevin wants to test it; if he isn't confident in it, strip it out and fall back to Tally (or similar).
   - Page: `rsvp/index.html` + `rsvp/rsvp.js`. Backend: `apps-script/Code.gs`, a Google Apps Script web app bound to the guest Google Sheet (shared with Nora, the source of truth). Setup steps in `apps-script/README.md`.
-  - Guests type their full name; the script returns their whole household, and one page answers for everyone (attending, meal, dietary notes). Revisiting shows current answers so they can edit. No song requests.
+  - Guests type their full name; the script returns their whole household, and one page answers for everyone: accept/decline per person, plus one optional message to the couple. The message is stored on the row of the person whose name was searched. Revisiting shows current answers (and the searcher's own message) so they can edit. No meals, dietary notes or song requests.
+  - `Code.gs` finds Guests columns by header name (Household, First name, Last name, Attending, Message, Last updated), so Nora can reorder or add columns; `setUp()` adds missing ones.
   - `ENDPOINT` in `rsvp/rsvp.js` is the deployed web app URL (connected 2026-10-21). Empty, or `?demo` in the page URL = demo mode with made-up guests, nothing saved.
   - Tests: `node apps-script/test.js`. After changing `Code.gs`, Kevin must paste it into the Apps Script editor and deploy a new version of the existing deployment.
 - Do not enable any setting that requires respondents to sign in.

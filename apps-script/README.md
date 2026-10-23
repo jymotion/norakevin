@@ -27,13 +27,19 @@ Guest names live only in the Google Sheet, never in this repo.
 
 ## The Guests tab
 
-| Household | First name | Last name | Attending | Meal | Dietary notes | Last updated |
-|-----------|------------|-----------|-----------|------|---------------|--------------|
+| Household | First name | Last name | Attending | Message | Last updated |
+|-----------|------------|-----------|-----------|---------|--------------|
 
 - Fill in **Household**, **First name**, **Last name**. Everyone with the same
   Household value is one invitation; any label works (`Smith family`, `H12`).
 - The other columns are filled in by the site. You can also edit them by hand,
   e.g. when someone RSVPs by text. Use `Yes` or `No` in **Attending**.
+- **Message** is the optional note to Nora & Kevin. It goes on the row of the
+  person whose name was searched, so if Alex RSVPs for the household, Alex's
+  row gets the message. Each person who searches keeps their own message.
+- The script finds columns by their header text, so the order doesn't matter
+  and you can add your own columns (addresses, notes) anywhere. Don't rename
+  the six headers above. Running `setUp` again adds any that are missing.
 - Guests find their invitation by typing the first and last name exactly as
   in the Sheet (capitals, accents and punctuation don't matter). Use the name
   they'd type: "Bob", not "Robert", if that's what he goes by.
@@ -50,7 +56,6 @@ Guest names live only in the Google Sheet, never in this repo.
 
 At the top of `Code.gs`:
 
-- `MEALS`: the meal choices. Set to `[]` to drop the meal question.
 - `RSVP_DEADLINE`: e.g. `'2027-05-01'`. After that day the form shows answers
   but won't accept changes.
 

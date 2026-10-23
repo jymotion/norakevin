@@ -10,7 +10,8 @@ function fakeSheet(rows) {
   return {
     rows,
     getLastRow() { return this.rows.length; },
-    getRange(r, c, nr, nc) {
+    getLastColumn() { return Math.max(0, ...this.rows.map(r => r.length)); },
+    getRange(r, c, nr = 1, nc = 1) {
       const sheet = this;
       return {
         getValues() {
@@ -20,11 +21,9 @@ function fakeSheet(rows) {
             return out;
           });
         },
-        setValues(vals) {
-          vals.forEach((v, i) => {
-            const row = sheet.rows[r - 1 + i] || (sheet.rows[r - 1 + i] = []);
-            v.forEach((x, j) => { row[c - 1 + j] = x; });
-          });
+        setValue(v) {
+          const row = sheet.rows[r - 1] || (sheet.rows[r - 1] = []);
+          row[c - 1] = v;
           return this;
         },
         setFontWeight() { return this; }
@@ -35,10 +34,10 @@ function fakeSheet(rows) {
   };
 }
 
-function load(guestRows) {
-  const sheets = {
-    Guests: fakeSheet([['Household', 'First name', 'Last name', 'Attending', 'Meal', 'Dietary notes', 'Last updated'], ...guestRows.map(r => r.slice())])
-  };
+const HEADER = ['Household', 'First name', 'Last name', 'Attending', 'Message', 'Last updated'];
+
+function load(guestRows, header = HEADER) {
+  const sheets = { Guests: fakeSheet([header.slice(), ...guestRows.map(r => r.slice())]) };
   const ctx = {
     console: { log: console.log, error() {} },
     SpreadsheetApp: {
@@ -62,14 +61,24 @@ function load(guestRows) {
 }
 
 const guests = [
-  ['H1', 'Alex', 'Sample', '', '', '', ''],
-  ['H1', 'Jordan', 'Sample', '', '', '', ''],
-  ['H2', 'Zoë', "O'Brien", '', '', '', ''],
-  ['H3', 'Sam', 'Twin', '', '', '', ''],
-  ['H4', 'Sam', 'Twin', '', '', '', ''],
-  ['H5', 'Pat Sr', 'Example', '', '', '', ''],
-  ['H5', 'Pat Jr', 'Example', '', '', '', '']
+  ['H1', 'Alex', 'Sample', '', '', ''],
+  ['H1', 'Jordan', 'Sample', '', '', ''],
+  ['H2', 'Zoë', "O'Brien", '', '', ''],
+  ['H3', 'Sam', 'Twin', '', '', ''],
+  ['H4', 'Sam', 'Twin', '', '', ''],
+  ['H5', 'Pat Sr', 'Example', '', '', ''],
+  ['H5', 'Pat Jr', 'Example', '', '', '']
 ];
+const ALEX = 1, JORDAN = 2, ZOE = 3; // row indexes in the fake sheet (0 = header)
+const ATT = 3, MSG = 4, UPD = 5;    // column indexes for the default header
+
+const both = (a, j) => [
+  { first: 'Alex', last: 'Sample', attending: a },
+  { first: 'Jordan', last: 'Sample', attending: j }
+];
+// Arrays made inside the sandbox have a different prototype; compare contents.
+const plain = v => JSON.parse(JSON.stringify(v));
+const isDate = v => Object.prototype.toString.call(v) === '[object Date]';
 
 let passed = 0;
 function test(name, fn) {
@@ -83,12 +92,16 @@ test('lookup needs first and last name', () => {
   assert.match(post({ action: 'lookup', name: 'Alex' }).error, /first and last/);
 });
 
-test('lookup returns the whole household', () => {
+test('lookup returns the whole household, with no meal options', () => {
   const { post } = load(guests);
   const res = post({ action: 'lookup', name: '  alex   SAMPLE ' });
   assert.ok(res.ok);
-  assert.deepStrictEqual(res.members.map(m => m.first), ['Alex', 'Jordan']);
-  assert.deepStrictEqual(res.meals, ['Chicken', 'Fish', 'Vegetarian']);
+  assert.deepStrictEqual(res.members, [
+    { first: 'Alex', last: 'Sample', attending: '' },
+    { first: 'Jordan', last: 'Sample', attending: '' }
+  ]);
+  assert.strictEqual(res.message, '');
+  assert.strictEqual(res.meals, undefined);
 });
 
 test('lookup ignores accents and punctuation', () => {
@@ -115,12 +128,14 @@ test('Jr/Sr are optional when looking up, but still separate people', () => {
     assert.deepStrictEqual(res.members.map(m => m.first), ['Pat Sr', 'Pat Jr']);
   }
   assert.ok(post({
-    action: 'save', name: 'Pat Example', responses: [
-      { first: 'Pat Sr', last: 'Example', attending: 'yes', meal: 'Fish' },
+    action: 'save', name: 'Pat Example', message: 'Hi', responses: [
+      { first: 'Pat Sr', last: 'Example', attending: 'yes' },
       { first: 'Pat Jr', last: 'Example', attending: 'no' }
     ]
   }).ok);
-  assert.deepStrictEqual(sheets.Guests.rows.slice(6).map(r => r[3]), ['Yes', 'No']);
+  assert.deepStrictEqual(sheets.Guests.rows.slice(6).map(r => r[ATT]), ['Yes', 'No']);
+  // An ambiguous search ("Pat Example") puts the message on the first match.
+  assert.deepStrictEqual(sheets.Guests.rows.slice(6).map(r => r[MSG]), ['Hi', '']);
 });
 
 test('honeypot blocks bots', () => {
@@ -128,66 +143,102 @@ test('honeypot blocks bots', () => {
   assert.strictEqual(post({ action: 'lookup', name: 'Alex Sample', website: 'x' }).ok, false);
 });
 
-test('save writes every household member and logs it', () => {
+test('save writes attendance for everyone and the message on the searcher\'s row', () => {
   const { post, sheets } = load(guests);
-  const res = post({
-    action: 'save', name: 'Alex Sample', responses: [
-      { first: 'Alex', last: 'Sample', attending: 'yes', meal: 'Fish', dietary: 'No nuts' },
-      { first: 'Jordan', last: 'Sample', attending: 'no', meal: 'Chicken', dietary: 'ignored' }
-    ]
-  });
+  const res = post({ action: 'save', name: 'Jordan Sample', responses: both('yes', 'no'), message: '  So happy for you!  ' });
   assert.ok(res.ok, res.error);
   const rows = sheets.Guests.rows;
-  assert.deepStrictEqual(rows[1].slice(3, 6), ['Yes', 'Fish', 'No nuts']);
-  assert.deepStrictEqual(rows[2].slice(3, 6), ['No', '', '']);
-  assert.strictEqual(Object.prototype.toString.call(rows[1][6]), '[object Date]');
-  assert.strictEqual(sheets['Responses log'].rows.length, 3);
-  // Other households untouched.
-  assert.strictEqual(rows[3][3], '');
-  // Lookup now returns saved answers for editing.
-  const again = post({ action: 'lookup', name: 'Jordan Sample' });
-  assert.deepStrictEqual(again.members.map(m => m.attending), ['yes', 'no']);
+  assert.strictEqual(rows[ALEX][ATT], 'Yes');
+  assert.strictEqual(rows[JORDAN][ATT], 'No');
+  assert.strictEqual(rows[ALEX][MSG], '');
+  assert.strictEqual(rows[JORDAN][MSG], 'So happy for you!');
+  assert.ok(isDate(rows[ALEX][UPD]) && isDate(rows[JORDAN][UPD]));
+  assert.strictEqual(rows[ZOE][ATT], '');
+  const log = sheets['Responses log'].rows;
+  assert.deepStrictEqual(plain(log[0]), ['Time', 'Household', 'First name', 'Last name', 'Attending', 'Message']);
+  assert.deepStrictEqual(plain(log.slice(1).map(r => r.slice(2))), [
+    ['Alex', 'Sample', 'Yes', ''],
+    ['Jordan', 'Sample', 'No', 'So happy for you!']
+  ]);
 });
 
-test('save rejects missing members, bad meals, and missing answers without writing', () => {
+test('lookup shows the searcher their own saved message', () => {
+  const { post } = load(guests);
+  post({ action: 'save', name: 'Jordan Sample', responses: both('yes', 'yes'), message: 'From Jordan' });
+  const jordan = post({ action: 'lookup', name: 'Jordan Sample' });
+  assert.strictEqual(jordan.message, 'From Jordan');
+  assert.deepStrictEqual(jordan.members.map(m => m.attending), ['yes', 'yes']);
+  assert.strictEqual(post({ action: 'lookup', name: 'Alex Sample' }).message, '');
+});
+
+test('each household member keeps their own message', () => {
   const { post, sheets } = load(guests);
-  const alex = { first: 'Alex', last: 'Sample', attending: 'yes', meal: 'Fish', dietary: '' };
-  assert.match(post({ action: 'save', name: 'Alex Sample', responses: [alex] }).error, /Jordan Sample/);
-  assert.match(post({
-    action: 'save', name: 'Alex Sample',
-    responses: [alex, { first: 'Jordan', last: 'Sample', attending: 'yes', meal: 'Steak' }]
-  }).error, /meal for Jordan/);
-  assert.match(post({
-    action: 'save', name: 'Alex Sample',
-    responses: [alex, { first: 'Jordan', last: 'Sample', attending: '' }]
-  }).error, /whether Jordan/);
-  assert.strictEqual(sheets.Guests.rows[1][3], '');
+  post({ action: 'save', name: 'Jordan Sample', responses: both('yes', 'yes'), message: 'From Jordan' });
+  post({ action: 'save', name: 'Alex Sample', responses: both('yes', 'no'), message: 'From Alex' });
+  assert.strictEqual(sheets.Guests.rows[JORDAN][MSG], 'From Jordan');
+  assert.strictEqual(sheets.Guests.rows[ALEX][MSG], 'From Alex');
+  assert.strictEqual(sheets.Guests.rows[JORDAN][ATT], 'No');
+});
+
+test('save rejects missing members and missing answers without writing', () => {
+  const { post, sheets } = load(guests);
+  const alex = { first: 'Alex', last: 'Sample', attending: 'yes' };
+  assert.match(post({ action: 'save', name: 'Alex Sample', responses: [alex] }).error, /whether Jordan/);
+  assert.match(post({ action: 'save', name: 'Alex Sample', responses: both('yes', '') }).error, /whether Jordan/);
+  assert.match(post({ action: 'save', name: 'Alex Sample', responses: both('maybe', 'no') }).error, /whether Alex/);
+  assert.strictEqual(sheets.Guests.rows[ALEX][ATT], '');
   assert.strictEqual(sheets['Responses log'], undefined);
 });
 
 test('save cannot touch another household', () => {
   const { post, sheets } = load(guests);
   const res = post({
-    action: 'save', name: 'Alex Sample', responses: [
-      { first: 'Alex', last: 'Sample', attending: 'no' },
-      { first: 'Jordan', last: 'Sample', attending: 'no' },
-      { first: 'Zoë', last: "O'Brien", attending: 'no' }
-    ]
+    action: 'save', name: 'Alex Sample',
+    responses: [...both('no', 'no'), { first: 'Zoë', last: "O'Brien", attending: 'no' }]
   });
   assert.ok(res.ok);
-  assert.strictEqual(sheets.Guests.rows[3][3], '');
+  assert.strictEqual(sheets.Guests.rows[ZOE][ATT], '');
 });
 
-test('notes are trimmed, capped, and cannot become formulas', () => {
+test('messages are trimmed, capped, and cannot become formulas', () => {
   const { post, sheets } = load(guests);
-  post({
-    action: 'save', name: 'Alex Sample', responses: [
-      { first: 'Alex', last: 'Sample', attending: 'yes', meal: 'Fish', dietary: '=HYPERLINK("x")' },
-      { first: 'Jordan', last: 'Sample', attending: 'yes', meal: 'Fish', dietary: 'a'.repeat(1000) }
-    ]
-  });
-  assert.strictEqual(sheets.Guests.rows[1][5], '\'=HYPERLINK("x")');
-  assert.strictEqual(sheets.Guests.rows[2][5].length, 300);
+  post({ action: 'save', name: 'Alex Sample', responses: both('yes', 'yes'), message: '=HYPERLINK("x")' });
+  assert.strictEqual(sheets.Guests.rows[ALEX][MSG], '\'=HYPERLINK("x")');
+  post({ action: 'save', name: 'Alex Sample', responses: both('yes', 'yes'), message: 'a'.repeat(5000) });
+  assert.strictEqual(sheets.Guests.rows[ALEX][MSG].length, 1000);
+});
+
+test('columns are found by header name, in any order, with extra columns', () => {
+  const header = ['Notes', 'Last name', 'First name', 'Household', 'Message', 'Address', 'Attending', 'Last updated'];
+  const { post, sheets } = load([['', 'Sample', 'Alex', 'H1', '', 'n/a', '', '']], header);
+  assert.ok(post({
+    action: 'save', name: 'Alex Sample', message: 'Hello',
+    responses: [{ first: 'Alex', last: 'Sample', attending: 'yes' }]
+  }).ok);
+  const row = sheets.Guests.rows[1];
+  assert.strictEqual(row[6], 'Yes');
+  assert.strictEqual(row[4], 'Hello');
+  assert.strictEqual(row[5], 'n/a');
+  assert.ok(isDate(row[7]));
+});
+
+test('a missing column gives a friendly error; setUp adds it without disturbing others', () => {
+  const old = ['Household', 'First name', 'Last name', 'Attending', 'Meal', 'Dietary notes', 'Last updated'];
+  const { post, ctx, sheets } = load([['H1', 'Alex', 'Sample', 'Yes', 'Fish', '', '']], old);
+  assert.match(post({ action: 'lookup', name: 'Alex Sample' }).error, /went wrong/);
+  ctx.setUp();
+  assert.deepStrictEqual(plain(sheets.Guests.rows[0]), [...old, 'Message']);
+  const res = post({ action: 'lookup', name: 'Alex Sample' });
+  assert.ok(res.ok, res.error);
+  assert.strictEqual(res.members[0].attending, 'yes');
+});
+
+test('setUp builds a fresh Guests tab', () => {
+  const { ctx, sheets } = load([]);
+  delete sheets.Guests;
+  ctx.setUp();
+  assert.deepStrictEqual(plain(sheets.Guests.rows[0]), HEADER);
+  assert.ok(sheets['Responses log']);
 });
 
 test('deadline blocks saving', () => {

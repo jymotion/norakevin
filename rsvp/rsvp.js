@@ -15,9 +15,9 @@
   var message = $('message');
   var done = $('done');
 
-  // Name the guest searched with; the server re-checks it on save.
+  // Name the guest searched with; the server re-checks it on save, and their
+  // message is stored on their row of the Sheet.
   var currentName = '';
-  var meals = [];
 
   // ---- Server ----
 
@@ -68,17 +68,17 @@
       .then(function (res) {
         if (!res.ok) return say(res.error);
         currentName = name;
-        meals = res.meals || [];
-        renderHousehold(res.members, res.deadlinePassed);
+        renderHousehold(res.members, res.message, res.deadlinePassed);
         show(householdForm);
-        householdForm.querySelector('input, select').focus();
+        householdForm.querySelector('input').focus();
       })
       .catch(function () { say("We couldn't reach the RSVP system. Please try again, or text or call us."); })
       .then(function () { busy(lookupForm, false); });
   }
 
-  function renderHousehold(members, deadlinePassed) {
+  function renderHousehold(members, note, deadlinePassed) {
     people.textContent = '';
+    $('note').value = note || '';
     var answered = members.some(function (m) { return m.attending; });
     $('household-intro').textContent = deadlinePassed
       ? 'The RSVP deadline has passed. Here is what we have; text or call us to make changes.'
@@ -105,45 +105,13 @@
     [['yes', 'Joyfully accepts'], ['no', 'Regretfully declines']].forEach(function (opt) {
       var input = el('input', { type: 'radio', name: 'attending-' + i, value: opt[0], required: true });
       input.checked = m.attending === opt[0];
-      input.addEventListener('change', function () { toggleDetails(fs); });
       var label = el('label');
       label.appendChild(input);
       label.appendChild(document.createTextNode(opt[1]));
       choices.appendChild(label);
     });
     fs.appendChild(choices);
-
-    var details = el('div', { className: 'details' });
-    if (meals.length) {
-      var mealField = el('div', { className: 'field' });
-      var mealId = 'meal-' + i;
-      mealField.appendChild(el('label', { htmlFor: mealId, textContent: 'Meal' }));
-      var select = el('select', { id: mealId, name: 'meal' });
-      select.appendChild(el('option', { value: '', textContent: 'Choose a meal' }));
-      meals.forEach(function (meal) {
-        select.appendChild(el('option', { value: meal, textContent: meal, selected: m.meal === meal }));
-      });
-      mealField.appendChild(select);
-      details.appendChild(mealField);
-    }
-    var dietField = el('div', { className: 'field' });
-    var dietId = 'dietary-' + i;
-    dietField.appendChild(el('label', { htmlFor: dietId, textContent: 'Allergies or dietary needs (optional)' }));
-    dietField.appendChild(el('textarea', { id: dietId, name: 'dietary', maxLength: 300, value: m.dietary || '' }));
-    details.appendChild(dietField);
-    fs.appendChild(details);
-
-    toggleDetails(fs);
     return fs;
-  }
-
-  // Meal and dietary questions only apply to guests who are coming.
-  function toggleDetails(fs) {
-    var yes = fs.querySelector('input[value="yes"]').checked;
-    var details = fs.querySelector('.details');
-    details.hidden = !yes;
-    var select = details.querySelector('select');
-    if (select) select.required = yes;
   }
 
   function el(tag, props) {
@@ -155,13 +123,10 @@
   function collect() {
     return Array.prototype.map.call(people.querySelectorAll('.person'), function (fs) {
       var checked = fs.querySelector('input[type="radio"]:checked');
-      var select = fs.querySelector('select');
       return {
         first: fs.dataset.first,
         last: fs.dataset.last,
-        attending: checked ? checked.value : '',
-        meal: select ? select.value : '',
-        dietary: fs.querySelector('textarea').value
+        attending: checked ? checked.value : ''
       };
     });
   }
@@ -178,7 +143,7 @@
     var responses = collect();
     busy(householdForm, true);
     say('');
-    call({ action: 'save', name: currentName, responses: responses })
+    call({ action: 'save', name: currentName, responses: responses, message: $('note').value })
       .then(function (res) {
         if (!res.ok) return say(res.error);
         var coming = responses.filter(function (r) { return r.attending === 'yes'; }).length;
@@ -205,12 +170,11 @@
   // ---- Demo backend (made-up guests, kept in memory only) ----
 
   var demoGuests = [
-    { household: 'demo-1', first: 'Alex', last: 'Sample', attending: '', meal: '', dietary: '' },
-    { household: 'demo-1', first: 'Jordan', last: 'Sample', attending: '', meal: '', dietary: '' },
-    { household: 'demo-1', first: 'Riley', last: 'Sample', attending: '', meal: '', dietary: '' },
-    { household: 'demo-2', first: 'Pat', last: 'Example', attending: '', meal: '', dietary: '' }
+    { household: 'demo-1', first: 'Alex', last: 'Sample', attending: '', message: '' },
+    { household: 'demo-1', first: 'Jordan', last: 'Sample', attending: '', message: '' },
+    { household: 'demo-1', first: 'Riley', last: 'Sample', attending: '', message: '' },
+    { household: 'demo-2', first: 'Pat', last: 'Example', attending: '', message: '' }
   ];
-  var demoMeals = ['Chicken', 'Fish', 'Vegetarian'];
 
   function demoCall(req) {
     var norm = function (s) { return String(s).toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim(); };
@@ -223,21 +187,22 @@
     } else {
       var household = demoGuests.filter(function (g) { return g.household === match.household; });
       if (req.action === 'lookup') {
-        res = { ok: true, meals: demoMeals, members: household.map(function (g) { return Object.assign({}, g); }) };
+        res = {
+          ok: true,
+          message: match.message,
+          members: household.map(function (g) { return { first: g.first, last: g.last, attending: g.attending }; })
+        };
       } else {
         res = { ok: true };
         household.forEach(function (g) {
           var r = req.responses.filter(function (x) { return x.first === g.first && x.last === g.last; })[0];
           if (!r || !r.attending) res = { ok: false, error: 'Please say whether ' + g.first + ' ' + g.last + ' will attend.' };
-          else if (r.attending === 'yes' && !r.meal) res = { ok: false, error: 'Please choose a meal for ' + g.first + ' ' + g.last + '.' };
         });
         if (res.ok) {
           household.forEach(function (g) {
-            var r = req.responses.filter(function (x) { return x.first === g.first && x.last === g.last; })[0];
-            g.attending = r.attending;
-            g.meal = r.attending === 'yes' ? r.meal : '';
-            g.dietary = r.attending === 'yes' ? r.dietary : '';
+            g.attending = req.responses.filter(function (x) { return x.first === g.first && x.last === g.last; })[0].attending;
           });
+          match.message = String(req.message || '').trim();
         }
       }
     }

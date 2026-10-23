@@ -10,7 +10,7 @@
   <script>document.documentElement.className += ' js';</script>
   <style>
     .rsvp label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
-    .rsvp input[type="text"], .rsvp select, .rsvp textarea {
+    .rsvp input[type="text"], .rsvp textarea {
       width: 100%;
       font: inherit;
       padding: 0.6rem 0.8rem;
@@ -19,8 +19,8 @@
       background: #fff;
       color: inherit;
     }
-    .rsvp textarea { min-height: 4.5rem; resize: vertical; }
-    .rsvp input:focus, .rsvp select:focus, .rsvp textarea:focus { outline: 3px solid var(--ink); outline-offset: 2px; }
+    .rsvp textarea { min-height: 7rem; resize: vertical; }
+    .rsvp input:focus, .rsvp textarea:focus { outline: 3px solid var(--ink); outline-offset: 2px; }
     .rsvp button[disabled] { opacity: 0.6; cursor: wait; }
     .rsvp button.link {
       background: none; color: inherit; border: 0; font: inherit; text-decoration: underline;
@@ -103,6 +103,10 @@
       <form id="household-form" hidden>
         <p id="household-intro"></p>
         <div id="people"></div>
+        <div class="field">
+          <label for="note">Leave a message for Nora &amp; Kevin (optional)</label>
+          <textarea id="note" name="note" maxlength="1000"></textarea>
+        </div>
         <button type="submit" class="button">Send RSVP</button>
         <p><button type="button" class="link" id="start-over">Not you? Search again</button></p>
       </form>

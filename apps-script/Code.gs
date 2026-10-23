@@ -13,16 +13,21 @@
 var GUESTS_SHEET = 'Guests';
 var LOG_SHEET = 'Responses log';
 
-// Meal choices offered to attending guests. Empty list = no meal question.
-var MEALS = ['Chicken', 'Fish', 'Vegetarian'];
-
 // Last day RSVPs can be changed, as 'YYYY-MM-DD' (end of that day, script's
 // time zone). null = no deadline.
 var RSVP_DEADLINE = null;
 
-var HEADERS = ['Household', 'First name', 'Last name', 'Attending', 'Meal', 'Dietary notes', 'Last updated'];
-var COL = { household: 0, first: 1, last: 2, attending: 3, meal: 4, dietary: 5, updated: 6 };
-var MAX_NOTE_LENGTH = 300;
+// Columns the script needs in the Guests tab, found by header name, so they
+// can be in any order and other columns can be added freely.
+var FIELDS = {
+  household: 'Household',
+  first: 'First name',
+  last: 'Last name',
+  attending: 'Attending',
+  message: 'Message',
+  updated: 'Last updated'
+};
+var MAX_MESSAGE_LENGTH = 1000;
 
 // ---- Web app entry points ---------------------------------------------------
 
@@ -48,7 +53,7 @@ function handle(req) {
   // Hidden field real people never fill in.
   if (req.website) return { ok: false, error: 'Unable to process this request.' };
   if (req.action === 'lookup') return lookup(req.name);
-  if (req.action === 'save') return save(req.name, req.responses);
+  if (req.action === 'save') return save(req.name, req.responses, req.message);
   return { ok: false, error: 'Unknown request.' };
 }
 
@@ -57,23 +62,23 @@ function handle(req) {
 function lookup(name) {
   var found = findHousehold(name);
   if (found.error) return { ok: false, error: found.error };
+  var col = found.col;
   return {
     ok: true,
-    meals: MEALS,
     deadlinePassed: deadlinePassed(),
+    // The message lives on the row of the person who searched.
+    message: String(found.self.values[col.message] || ''),
     members: found.rows.map(function (r) {
       return {
-        first: r.values[COL.first],
-        last: r.values[COL.last],
-        attending: normalizeAttending(r.values[COL.attending]),
-        meal: String(r.values[COL.meal] || ''),
-        dietary: String(r.values[COL.dietary] || '')
+        first: r.values[col.first],
+        last: r.values[col.last],
+        attending: normalizeAttending(r.values[col.attending])
       };
     })
   };
 }
 
-function save(name, responses) {
+function save(name, responses, message) {
   if (deadlinePassed()) {
     return { ok: false, error: 'The RSVP deadline has passed. Please text or call us to make changes.' };
   }
@@ -84,35 +89,32 @@ function save(name, responses) {
   try {
     var found = findHousehold(name);
     if (found.error) return { ok: false, error: found.error };
+    var col = found.col;
 
     // Validate every member before writing anything.
     var updates = [];
     for (var i = 0; i < found.rows.length; i++) {
       var row = found.rows[i];
-      var key = personKey(row.values[COL.first], row.values[COL.last]);
+      var key = personKey(row.values[col.first], row.values[col.last]);
       var resp = responses.filter(function (r) { return personKey(r.first, r.last) === key; })[0];
-      var label = row.values[COL.first] + ' ' + row.values[COL.last];
-      if (!resp) return { ok: false, error: 'Please answer for ' + label + '.' };
-      if (resp.attending !== 'yes' && resp.attending !== 'no') {
+      var label = row.values[col.first] + ' ' + row.values[col.last];
+      if (!resp || (resp.attending !== 'yes' && resp.attending !== 'no')) {
         return { ok: false, error: 'Please say whether ' + label + ' will attend.' };
       }
-      var meal = '';
-      if (resp.attending === 'yes' && MEALS.length) {
-        if (MEALS.indexOf(resp.meal) === -1) return { ok: false, error: 'Please choose a meal for ' + label + '.' };
-        meal = resp.meal;
-      }
-      var dietary = resp.attending === 'yes' ? cleanText(resp.dietary) : '';
-      updates.push({ row: row, attending: resp.attending === 'yes' ? 'Yes' : 'No', meal: meal, dietary: dietary });
+      updates.push({ row: row, attending: resp.attending === 'yes' ? 'Yes' : 'No' });
     }
+    var note = cleanText(message);
 
-    var sheet = guestsSheet();
+    var sheet = found.sheet;
     var log = logSheet();
     var now = new Date();
     updates.forEach(function (u) {
-      sheet.getRange(u.row.sheetRow, COL.attending + 1, 1, 4)
-        .setValues([[u.attending, u.meal, u.dietary, now]]);
-      log.appendRow([now, u.row.values[COL.household], u.row.values[COL.first], u.row.values[COL.last],
-        u.attending, u.meal, u.dietary]);
+      var isSelf = u.row === found.self;
+      sheet.getRange(u.row.sheetRow, col.attending + 1).setValue(u.attending);
+      if (isSelf) sheet.getRange(u.row.sheetRow, col.message + 1).setValue(note);
+      sheet.getRange(u.row.sheetRow, col.updated + 1).setValue(now);
+      log.appendRow([now, u.row.values[col.household], u.row.values[col.first], u.row.values[col.last],
+        u.attending, isSelf ? note : '']);
     });
     return { ok: true };
   } finally {
@@ -123,46 +125,55 @@ function save(name, responses) {
 // ---- Helpers ----------------------------------------------------------------
 
 // Finds the household of the guest whose full name matches, and returns all
-// of that household's rows. Requires an exact full-name match so guessing a
-// last name alone reveals nothing.
+// of that household's rows plus the searched person's own row ("self").
+// Requires an exact full-name match so guessing a last name alone reveals
+// nothing.
 function findHousehold(name) {
   var wanted = lookupKey(name);
   if (wanted.split(' ').length < 2) return { error: 'Please enter your first and last name.' };
 
-  var rows = guestRows();
-  var matches = rows.filter(function (r) {
-    return lookupKey(r.values[COL.first] + ' ' + r.values[COL.last]) === wanted;
+  var guests = readGuests();
+  var col = guests.col;
+  var matches = guests.rows.filter(function (r) {
+    return lookupKey(r.values[col.first] + ' ' + r.values[col.last]) === wanted;
   });
   if (matches.length === 0) {
     return { error: "We couldn't find that name. Try the name on your invitation, or text or call us." };
   }
-  var households = uniq(matches.map(function (r) { return String(r.values[COL.household]); }));
+  var households = uniq(matches.map(function (r) { return String(r.values[col.household]); }));
   if (households.length > 1) {
     return { error: 'More than one guest has that name. Please text or call us to RSVP.' };
   }
   return {
-    rows: rows.filter(function (r) { return String(r.values[COL.household]) === households[0]; })
+    sheet: guests.sheet,
+    col: col,
+    self: matches[0],
+    rows: guests.rows.filter(function (r) { return String(r.values[col.household]) === households[0]; })
   };
 }
 
-function guestRows() {
-  var sheet = guestsSheet();
-  var last = sheet.getLastRow();
-  if (last < 2) return [];
-  var values = sheet.getRange(2, 1, last - 1, HEADERS.length).getValues();
-  var rows = [];
-  values.forEach(function (v, i) {
-    if (String(v[COL.household]).trim() && String(v[COL.first]).trim()) {
-      rows.push({ sheetRow: i + 2, values: v });
-    }
-  });
-  return rows;
-}
-
-function guestsSheet() {
+// Reads the Guests tab. col maps each FIELDS key to its 0-based column.
+function readGuests() {
   var sheet = SpreadsheetApp.getActive().getSheetByName(GUESTS_SHEET);
   if (!sheet) throw new Error('Missing "' + GUESTS_SHEET + '" tab. Run setUp() first.');
-  return sheet;
+  var width = sheet.getLastColumn();
+  var header = width ? sheet.getRange(1, 1, 1, width).getValues()[0].map(headerKey) : [];
+  var col = {};
+  Object.keys(FIELDS).forEach(function (k) {
+    col[k] = header.indexOf(headerKey(FIELDS[k]));
+    if (col[k] === -1) throw new Error('Guests tab has no "' + FIELDS[k] + '" column. Run setUp() to add it.');
+  });
+
+  var rows = [];
+  var last = sheet.getLastRow();
+  if (last >= 2) {
+    sheet.getRange(2, 1, last - 1, width).getValues().forEach(function (v, i) {
+      if (String(v[col.household]).trim() && String(v[col.first]).trim()) {
+        rows.push({ sheetRow: i + 2, values: v });
+      }
+    });
+  }
+  return { sheet: sheet, col: col, rows: rows };
 }
 
 function logSheet() {
@@ -170,10 +181,14 @@ function logSheet() {
   var sheet = ss.getSheetByName(LOG_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(LOG_SHEET);
-    sheet.appendRow(['Time', 'Household', 'First name', 'Last name', 'Attending', 'Meal', 'Dietary notes']);
+    sheet.appendRow(['Time', 'Household', 'First name', 'Last name', 'Attending', 'Message']);
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+function headerKey(h) {
+  return String(h || '').trim().toLowerCase();
 }
 
 // Lowercase, strip accents and punctuation, collapse spaces.
@@ -206,7 +221,7 @@ function normalizeAttending(v) {
 
 // Trim, cap length, and stop Sheets from treating text as a formula.
 function cleanText(s) {
-  var t = String(s || '').trim().slice(0, MAX_NOTE_LENGTH);
+  var t = String(s || '').trim().slice(0, MAX_MESSAGE_LENGTH);
   return /^[=+\-@]/.test(t) ? "'" + t : t;
 }
 
@@ -221,13 +236,22 @@ function uniq(list) {
   return list.filter(function (v, i) { return list.indexOf(v) === i; });
 }
 
-// ---- One-time setup ---------------------------------------------------------
+// ---- Setup ------------------------------------------------------------------
 
-// Run once from the Apps Script editor to create the tabs with the right headers.
+// Run from the Apps Script editor. Creates the Guests tab if needed and adds
+// any missing columns at the end of the header row. Safe to run again.
 function setUp() {
   var ss = SpreadsheetApp.getActive();
   var sheet = ss.getSheetByName(GUESTS_SHEET) || ss.insertSheet(GUESTS_SHEET);
-  sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
+  var width = sheet.getLastColumn();
+  var have = width ? sheet.getRange(1, 1, 1, width).getValues()[0].map(headerKey) : [];
+  Object.keys(FIELDS).forEach(function (k) {
+    if (have.indexOf(headerKey(FIELDS[k])) === -1) {
+      width++;
+      sheet.getRange(1, width).setValue(FIELDS[k]);
+    }
+  });
+  sheet.getRange(1, 1, 1, width).setFontWeight('bold');
   sheet.setFrozenRows(1);
   logSheet();
 }
