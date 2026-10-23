@@ -230,7 +230,8 @@ main { flex: 1; }
 }
 
 @media (min-width: 761px) {
-  .site-nav { order: 0; }
+  /* Full-width white bar that stays at the top while the page scrolls. */
+  .site-nav { order: 0; position: sticky; top: 0; z-index: 10; background: var(--paper); }
   .masthead { order: 1; padding-top: 1.2rem; padding-bottom: 2.5rem; }
   .hero { order: 2; }
   main { order: 3; }
