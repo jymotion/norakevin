@@ -11,13 +11,20 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 - RSVP deadline:
 - Meal choices, if any:
 - Plus-one policy:
-- Design direction (Nora approves the look):
+- Design direction (Nora approves the look): classic black-on-white, modeled on a Zola-style template Kevin picked. Script "The wedding of" (Monsieur La Doulaise) over spaced serif caps (Cormorant Garamond), mixed-case letter-spaced nav, one big photo. Phones: top bar with menu button and "N&K" monogram, photo first.
 
 ## Stack and hosting
 
 - Plain HTML, CSS, and vanilla JavaScript. No framework, no build step, no package dependencies unless there's a clear reason.
 - Hosted on GitHub Pages from the `main` branch. Custom domain registered at Spaceship; keep the `CNAME` file in the repo root and HTTPS enforced.
 - This repo is **public** (required for GitHub Pages on a free account). Treat everything committed as visible to anyone.
+
+## Site structure
+
+- Shared styles in `style.css`, shared JS (phone menu, countdown) in `site.js`. Each page is a folder with `index.html` (`/schedule/`, `/travel/`, ...).
+- The top bar, masthead and nav are copied into every page (no build step). When the nav changes, update every page and move `aria-current="page"` to the right link.
+- Fonts are self-hosted in `fonts/` (OFL licenses alongside), so pages make no requests to Google Fonts.
+- Home page placeholders to fill in: hero photo (`/images/hero.jpg` with alt text), date and place text, and `data-date="YYYY-MM-DD"` on the countdown.
 
 ## Hard rules
 
