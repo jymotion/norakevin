@@ -59,7 +59,7 @@
     .rsvp .message.error { background: #fdecea; color: #7a1a12; border: 1px solid #e0a39c; }
     .rsvp .message.success { background: #e9f5ec; color: #1c4d2a; border: 1px solid #9ccaa8; }
     .rsvp .demo { background: #fff6d6; border: 1px solid #e3c766; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 1.1rem; }
-    .rsvp .fallback { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--line); text-align: center; }
+    .rsvp #household-intro:empty { display: none; }
     .visually-hidden { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
     [hidden] { display: none !important; }
   </style>
@@ -101,7 +101,6 @@
       <div id="message" role="alert" hidden></div>
 
       <form id="lookup-form" hidden>
-        <p>Enter the first and last name of anyone in your household to find your invitation. You'll be able to answer for everyone at once.</p>
         <div class="field">
           <label for="name">Your full name</label>
           <input type="text" id="name" name="name" autocomplete="name" required>
@@ -127,8 +126,6 @@
       <div id="done" hidden>
         <p><button type="button" class="button" id="edit-again">Change our RSVP</button></p>
       </div>
-
-      <p class="fallback">Prefer not to use the form? You can text or call us to RSVP instead.</p>
     </main>
   </div>
   <script src="/site.js"></script>

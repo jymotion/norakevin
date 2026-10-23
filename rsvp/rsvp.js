@@ -80,16 +80,11 @@
     people.textContent = '';
     $('note').value = note || '';
     var answered = members.some(function (m) { return m.attending; });
-    var blank = members.some(function (m) { return !m.attending; });
     $('household-intro').textContent = deadlinePassed
       ? 'The RSVP deadline has passed. Here is what we have; text or call us to make changes.'
-      : answered && blank
-        ? "Here's your RSVP so far. Answer for anyone still blank, or change anything, and send it again."
       : answered
         ? "Here's your current RSVP. Change anything you like and send it again."
-        : members.length > 1
-          ? "Answer for everyone you can. Not sure about someone yet? Leave them blank and come back later."
-          : 'Please let us know if you can make it.';
+        : '';
     members.forEach(function (m, i) { people.appendChild(personFields(m, i)); });
     householdForm.querySelector('button[type="submit"]').hidden = !!deadlinePassed;
     Array.prototype.forEach.call(householdForm.elements, function (el) {
@@ -155,17 +150,12 @@
   householdForm.addEventListener('submit', function (e) {
     e.preventDefault();
     var responses = collect();
-    // Anyone left blank can be answered later; only an empty form is refused.
+    // Anyone left blank is saved as "don't know yet" and can be answered later.
     var rows = people.querySelectorAll('.person');
     var pending = [];
     responses.forEach(function (r, i) {
       if (!r.attending) pending.push(rows[i].querySelector('.person-name').textContent);
     });
-    if (pending.length === responses.length) {
-      say('Please choose Accepts or Declines for at least one person.');
-      rows[0].querySelector('input').focus();
-      return;
-    }
     busy(householdForm, true);
     say('');
     call({ action: 'save', name: currentName, responses: responses, message: $('note').value })
@@ -222,17 +212,12 @@
         };
       } else {
         // Same rules as the real script: blank answers leave that person as they were.
-        var answers = household.map(function (g) {
+        household.forEach(function (g) {
           var r = req.responses.filter(function (x) { return x.first === g.first && x.last === g.last; })[0];
-          return r && r.attending;
+          if (r && r.attending) g.attending = r.attending;
         });
-        if (!answers.some(Boolean)) {
-          res = { ok: false, error: 'Please choose Accepts or Declines for at least one person.' };
-        } else {
-          household.forEach(function (g, i) { if (answers[i]) g.attending = answers[i]; });
-          match.message = String(req.message || '').trim();
-          res = { ok: true };
-        }
+        match.message = String(req.message || '').trim();
+        res = { ok: true };
       }
     }
     return new Promise(function (resolve) { setTimeout(function () { resolve(res); }, 400); });

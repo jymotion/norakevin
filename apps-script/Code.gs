@@ -94,9 +94,10 @@ function save(name, responses, message) {
     if (found.error) return { ok: false, error: found.error };
     var col = found.col;
 
-    // Validate before writing anything. Guests may leave someone blank (e.g. a
-    // plus-one who isn't sure yet) and come back later; blank rows are left
-    // as they are, so an empty Attending cell means "hasn't answered".
+    // Validate before writing anything. A blank answer means "don't know yet"
+    // (say, a plus-one): it's logged and stamped like any other, but the
+    // Attending cell is left alone, so an empty cell means "hasn't answered"
+    // and an earlier answer is never wiped.
     var updates = [];
     for (var i = 0; i < found.rows.length; i++) {
       var row = found.rows[i];
@@ -104,31 +105,25 @@ function save(name, responses, message) {
       var resp = responses.filter(function (r) {
         return normalize([r.first, r.last, r.suffix].join(' ')) === normalize(label);
       })[0];
-      if (!resp || !resp.attending) continue;
-      if (resp.attending !== 'yes' && resp.attending !== 'no') {
+      var answer = (resp && resp.attending) || '';
+      if (answer && answer !== 'yes' && answer !== 'no') {
         return { ok: false, error: 'Please say whether ' + label + ' will attend.' };
       }
-      updates.push({ row: row, attending: resp.attending === 'yes' ? 'Yes' : 'No' });
-    }
-    if (updates.length === 0) {
-      return { ok: false, error: 'Please choose Accepts or Declines for at least one person.' };
+      updates.push({ row: row, attending: answer === 'yes' ? 'Yes' : answer === 'no' ? 'No' : '' });
     }
     var note = cleanText(message);
 
     var sheet = found.sheet;
     var log = logSheet();
     var now = new Date();
-    var selfAnswered = false;
     updates.forEach(function (u) {
       var isSelf = u.row === found.self;
-      if (isSelf) selfAnswered = true;
-      sheet.getRange(u.row.sheetRow, col.attending + 1).setValue(u.attending);
+      if (u.attending) sheet.getRange(u.row.sheetRow, col.attending + 1).setValue(u.attending);
+      // The message belongs to whoever searched, even if they left themselves blank.
+      if (isSelf) sheet.getRange(u.row.sheetRow, col.message + 1).setValue(note);
       sheet.getRange(u.row.sheetRow, col.updated + 1).setValue(now);
       log.appendRow(logRow(now, u.row, col, u.attending, isSelf ? note : ''));
     });
-    // The message belongs to whoever searched, even if they left themselves blank.
-    sheet.getRange(found.self.sheetRow, col.message + 1).setValue(note);
-    if (!selfAnswered && note) log.appendRow(logRow(now, found.self, col, '', note));
     return { ok: true };
   } finally {
     lock.releaseLock();

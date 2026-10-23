@@ -289,14 +289,24 @@ test('each household member keeps their own message', () => {
   assert.strictEqual(sheets.Guests.rows[JORDAN][ATT], 'No');
 });
 
-test('save needs at least one answer and rejects bad values, without writing', () => {
+test('save rejects bad values without writing', () => {
   const { post, sheets } = load(guests);
-  assert.match(post({ action: 'save', name: 'Alex Sample', responses: both('', '') }).error, /at least one person/);
-  assert.match(post({ action: 'save', name: 'Alex Sample', responses: [], message: 'Hi' }).error, /at least one person/);
   assert.match(post({ action: 'save', name: 'Alex Sample', responses: both('maybe', 'no') }).error, /whether Alex/);
   assert.strictEqual(sheets.Guests.rows[ALEX][ATT], '');
   assert.strictEqual(sheets.Guests.rows[JORDAN][ATT], '');
   assert.strictEqual(sheets['Responses log'], undefined);
+});
+
+test('an all-blank RSVP is still recorded as "don\'t know yet"', () => {
+  const { post, sheets } = load(guests);
+  const rows = sheets.Guests.rows;
+  assert.ok(post({ action: 'save', name: 'Alex Sample', responses: both('', '') }).ok);
+  assert.deepStrictEqual([rows[ALEX][ATT], rows[JORDAN][ATT]], ['', '']);
+  assert.ok(isDate(rows[ALEX][UPD]) && isDate(rows[JORDAN][UPD]));
+  assert.deepStrictEqual(plain(sheets['Responses log'].rows.slice(1).map(r => r.slice(2))), [
+    ['Alex', 'Sample', '', ''],
+    ['Jordan', 'Sample', '', '']
+  ]);
 });
 
 test('guests can answer for some people now and the rest later', () => {
@@ -305,9 +315,12 @@ test('guests can answer for some people now and the rest later', () => {
   // Alex is sure; their plus-one Jordan isn't yet.
   assert.ok(post({ action: 'save', name: 'Alex Sample', responses: both('yes', ''), message: 'Can\'t wait!' }).ok);
   assert.deepStrictEqual([rows[ALEX][ATT], rows[JORDAN][ATT]], ['Yes', '']);
-  assert.ok(isDate(rows[ALEX][UPD]));
-  assert.strictEqual(rows[JORDAN][UPD], '');
-  assert.strictEqual(sheets['Responses log'].rows.length, 2); // header + Alex only
+  // Jordan's blank still counts as a response: stamped and logged.
+  assert.ok(isDate(rows[ALEX][UPD]) && isDate(rows[JORDAN][UPD]));
+  assert.deepStrictEqual(plain(sheets['Responses log'].rows.slice(1).map(r => r.slice(2))), [
+    ['Alex', 'Sample', 'Yes', 'Can\'t wait!'],
+    ['Jordan', 'Sample', '', '']
+  ]);
   const back = post({ action: 'lookup', name: 'Alex Sample' });
   assert.deepStrictEqual(back.members.map(m => m.attending), ['yes', '']);
   // Later, Jordan answers; Alex's answer and message stay.
@@ -325,8 +338,8 @@ test('the searcher\'s message is saved even if they only answered for someone el
   const rows = sheets.Guests.rows;
   assert.deepStrictEqual([rows[ALEX][ATT], rows[ALEX][MSG], rows[JORDAN][ATT], rows[JORDAN][MSG]], ['', 'From Alex', 'Yes', '']);
   assert.deepStrictEqual(plain(sheets['Responses log'].rows.slice(1).map(r => r.slice(2))), [
-    ['Jordan', 'Sample', 'Yes', ''],
-    ['Alex', 'Sample', '', 'From Alex']
+    ['Alex', 'Sample', '', 'From Alex'],
+    ['Jordan', 'Sample', 'Yes', '']
   ]);
 });
 
