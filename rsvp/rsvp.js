@@ -117,11 +117,6 @@
     return row;
   }
 
-  // "A", "A and B", "A, B and C"
-  function listNames(names) {
-    return names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
-  }
-
   function el(tag, props) {
     var node = document.createElement(tag);
     Object.keys(props || {}).forEach(function (k) { node[k] = props[k]; });
@@ -151,19 +146,17 @@
     e.preventDefault();
     var responses = collect();
     // Anyone left blank is saved as "don't know yet" and can be answered later.
-    var rows = people.querySelectorAll('.person');
-    var pending = [];
-    responses.forEach(function (r, i) {
-      if (!r.attending) pending.push(rows[i].querySelector('.person-name').textContent);
-    });
+    var pending = responses.filter(function (r) { return !r.attending; }).length;
     busy(householdForm, true);
     say('');
     call({ action: 'save', name: currentName, responses: responses, message: $('note').value })
       .then(function (res) {
         if (!res.ok) return say(res.error);
         var coming = responses.filter(function (r) { return r.attending === 'yes'; }).length;
-        say(pending.length
-          ? 'Thank you! Your RSVP is saved. Come back anytime to answer for ' + listNames(pending) + '.'
+        say(pending === responses.length
+          ? 'Thank you! Your RSVP is saved. Come back anytime to answer.'
+          : pending
+          ? 'Thank you! Your RSVP is saved. Come back anytime to answer for the rest of your household.'
           : coming
             ? 'Thank you! Your RSVP is saved. We can’t wait to celebrate with you.'
             : 'Thank you for letting us know. You’ll be missed!', 'success');
