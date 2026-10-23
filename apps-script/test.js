@@ -332,6 +332,24 @@ test('guests can answer for some people now and the rest later', () => {
   assert.deepStrictEqual([rows[ALEX][ATT], rows[JORDAN][ATT]], ['No', 'No']);
 });
 
+test('clearing an earlier answer saves it as blank again', () => {
+  const { post, sheets } = load(guests);
+  const rows = sheets.Guests.rows;
+  assert.ok(post({ action: 'save', name: 'Alex Sample', responses: both('yes', 'yes') }).ok);
+  assert.deepStrictEqual([rows[ALEX][ATT], rows[JORDAN][ATT]], ['Yes', 'Yes']);
+  // Jordan un-taps Accepts: back to "don't know yet".
+  assert.ok(post({ action: 'save', name: 'Alex Sample', responses: both('yes', '') }).ok);
+  assert.deepStrictEqual([rows[ALEX][ATT], rows[JORDAN][ATT]], ['Yes', '']);
+  assert.deepStrictEqual(post({ action: 'lookup', name: 'Jordan Sample' }).members.map(m => m.attending), ['yes', '']);
+  assert.deepStrictEqual(plain(sheets['Responses log'].rows.slice(-1)[0].slice(2, 5)), ['Jordan', 'Sample', '']);
+});
+
+test('the message is saved even if the searcher is missing from the answers', () => {
+  const { post, sheets } = load(guests);
+  assert.ok(post({ action: 'save', name: 'Alex Sample', message: 'Hi', responses: [{ first: 'Jordan', last: 'Sample', attending: 'no' }] }).ok);
+  assert.deepStrictEqual([sheets.Guests.rows[ALEX][ATT], sheets.Guests.rows[ALEX][MSG]], ['', 'Hi']);
+});
+
 test('the searcher\'s message is saved even if they only answered for someone else', () => {
   const { post, sheets } = load(guests);
   assert.ok(post({ action: 'save', name: 'Alex Sample', responses: both('', 'yes'), message: 'From Alex' }).ok);

@@ -95,9 +95,9 @@ function save(name, responses, message) {
     var col = found.col;
 
     // Validate before writing anything. A blank answer means "don't know yet"
-    // (say, a plus-one): it's logged and stamped like any other, but the
-    // Attending cell is left alone, so an empty cell means "hasn't answered"
-    // and an earlier answer is never wiped.
+    // (say, a plus-one), and guests can clear an earlier answer back to blank,
+    // so blanks are written, stamped and logged like any other answer. People
+    // missing from the request entirely are left as they were.
     var updates = [];
     for (var i = 0; i < found.rows.length; i++) {
       var row = found.rows[i];
@@ -105,7 +105,8 @@ function save(name, responses, message) {
       var resp = responses.filter(function (r) {
         return normalize([r.first, r.last, r.suffix].join(' ')) === normalize(label);
       })[0];
-      var answer = (resp && resp.attending) || '';
+      if (!resp) continue;
+      var answer = resp.attending || '';
       if (answer && answer !== 'yes' && answer !== 'no') {
         return { ok: false, error: 'Please say whether ' + label + ' will attend.' };
       }
@@ -117,13 +118,12 @@ function save(name, responses, message) {
     var log = logSheet();
     var now = new Date();
     updates.forEach(function (u) {
-      var isSelf = u.row === found.self;
-      if (u.attending) sheet.getRange(u.row.sheetRow, col.attending + 1).setValue(u.attending);
-      // The message belongs to whoever searched, even if they left themselves blank.
-      if (isSelf) sheet.getRange(u.row.sheetRow, col.message + 1).setValue(note);
+      sheet.getRange(u.row.sheetRow, col.attending + 1).setValue(u.attending);
       sheet.getRange(u.row.sheetRow, col.updated + 1).setValue(now);
-      log.appendRow(logRow(now, u.row, col, u.attending, isSelf ? note : ''));
+      log.appendRow(logRow(now, u.row, col, u.attending, u.row === found.self ? note : ''));
     });
+    // The message belongs to whoever searched, whatever they answered.
+    sheet.getRange(found.self.sheetRow, col.message + 1).setValue(note);
     return { ok: true };
   } finally {
     lock.releaseLock();

@@ -38,7 +38,8 @@ Guest names live only in the Google Sheet, never in this repo.
   can answer for some of their household now (say, not the plus-one) and come
   back later for the rest. Leaving someone blank counts as "don't know yet":
   their **Last updated** is stamped and the **Responses log** gets a row with
-  Attending empty, but an earlier Yes/No is never erased.
+  Attending empty. Guests can also tap a chosen answer again to clear it,
+  which empties an earlier Yes/No.
 - **Message** is the optional note to Nora & Kevin. It goes on the row of the
   person whose name was searched, so if Alex RSVPs for the household, Alex's
   row gets the message. Each person who searches keeps their own message.

@@ -70,7 +70,7 @@
         currentName = name;
         renderHousehold(res.members, res.message, res.deadlinePassed);
         show(householdForm);
-        householdForm.querySelector('input').focus();
+        householdForm.querySelector('.choice').focus();
       })
       .catch(function () { say("We couldn't reach the RSVP system. Please try again, or text or call us."); })
       .then(function () { busy(lookupForm, false); });
@@ -102,16 +102,21 @@
     var fullName = [m.first, m.last, m.suffix].filter(Boolean).join(' ');
     row.appendChild(el('span', { className: 'person-name', id: nameId, textContent: fullName }));
 
+    // Toggle buttons rather than radios so a choice can be cleared again:
+    // tapping the pressed one un-presses it, which saves as "don't know yet".
     var choices = el('div', { className: 'choices' });
-    choices.setAttribute('role', 'radiogroup');
+    choices.setAttribute('role', 'group');
     choices.setAttribute('aria-labelledby', nameId);
     [['yes', 'Accepts'], ['no', 'Declines']].forEach(function (opt) {
-      var input = el('input', { type: 'radio', name: 'attending-' + i, value: opt[0] });
-      input.checked = m.attending === opt[0];
-      var label = el('label', { className: 'choice' });
-      label.appendChild(input);
-      label.appendChild(el('span', { textContent: opt[1] }));
-      choices.appendChild(label);
+      var btn = el('button', { type: 'button', className: 'choice', textContent: opt[1] });
+      btn.dataset.value = opt[0];
+      btn.setAttribute('aria-pressed', String(m.attending === opt[0]));
+      btn.addEventListener('click', function () {
+        var on = btn.getAttribute('aria-pressed') !== 'true';
+        Array.prototype.forEach.call(choices.children, function (b) { b.setAttribute('aria-pressed', 'false'); });
+        btn.setAttribute('aria-pressed', String(on));
+      });
+      choices.appendChild(btn);
     });
     row.appendChild(choices);
     return row;
@@ -125,12 +130,12 @@
 
   function collect() {
     return Array.prototype.map.call(people.querySelectorAll('.person'), function (fs) {
-      var checked = fs.querySelector('input[type="radio"]:checked');
+      var pressed = fs.querySelector('.choice[aria-pressed="true"]');
       return {
         first: fs.dataset.first,
         last: fs.dataset.last,
         suffix: fs.dataset.suffix,
-        attending: checked ? checked.value : ''
+        attending: pressed ? pressed.dataset.value : ''
       };
     });
   }
@@ -204,10 +209,10 @@
           members: household.map(function (g) { return { first: g.first, last: g.last, attending: g.attending }; })
         };
       } else {
-        // Same rules as the real script: blank answers leave that person as they were.
+        // Same rules as the real script: a blank answer is saved as blank.
         household.forEach(function (g) {
           var r = req.responses.filter(function (x) { return x.first === g.first && x.last === g.last; })[0];
-          if (r && r.attending) g.attending = r.attending;
+          if (r) g.attending = r.attending || '';
         });
         match.message = String(req.message || '').trim();
         res = { ok: true };
