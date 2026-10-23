@@ -27,21 +27,34 @@
       padding: 0.5rem 0; min-height: 2.75rem; cursor: pointer;
     }
     .rsvp .field { margin-bottom: 1.25rem; }
+    /* Household: one row per guest, hairlines between, choices on the right. */
+    .rsvp #people { margin-bottom: 1.75rem; border-top: 1px solid var(--line); }
     .rsvp .person {
-      border: 1px solid var(--line);
-      padding: 1rem 1rem 0.25rem;
-      margin: 0 0 1.25rem;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 0.5rem 1rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--line);
     }
-    .rsvp .person legend { font-size: 1.4rem; letter-spacing: 0.06em; padding: 0 0.4rem; }
-    .rsvp .choices { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
-    .rsvp .choices label {
-      display: flex; align-items: center; gap: 0.5rem;
-      font-weight: 500; margin: 0;
-      min-height: 3rem; padding: 0.5rem 1rem;
-      border: 1px solid #999; cursor: pointer;
+    .rsvp .person-name { font-size: 1.3rem; letter-spacing: 0.03em; }
+    .rsvp .choices { display: flex; gap: 0.5rem; margin-left: auto; }
+    .rsvp .choice { position: relative; display: block; margin: 0; font-weight: 500; cursor: pointer; }
+    /* The real radio stays for keyboards and screen readers; the span is what shows. */
+    .rsvp .choice input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+    .rsvp .choice span {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 6.25rem; min-height: 2.75rem; padding: 0.35rem 0.9rem;
+      border: 1px solid #8a8a8a;
+      font-size: 0.95rem; letter-spacing: 0.12em; text-transform: uppercase;
     }
-    .rsvp .choices input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--ink); }
-    .rsvp .choices label:has(input:checked) { border-color: var(--ink); background: #f2f2f2; outline: 2px solid var(--ink); }
+    .rsvp .choice:hover span { border-color: var(--ink); }
+    .rsvp .choice input:checked + span { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .rsvp .choice input:focus-visible + span { outline: 3px solid var(--ink); outline-offset: 2px; }
+    @media (max-width: 760px) {
+      .rsvp .person { gap: 0.4rem 0.75rem; }
+      .rsvp .person-name { font-size: 1.15rem; letter-spacing: 0.02em; }
+      .rsvp .choices { gap: 0.375rem; }
+      .rsvp .choice span { min-width: 0; padding: 0.3rem 0.6rem; font-size: 0.8rem; letter-spacing: 0.08em; }
+    }
     .rsvp .message { padding: 0.9rem 1rem; margin: 0 0 1.25rem; }
     .rsvp .message.error { background: #fdecea; color: #7a1a12; border: 1px solid #e0a39c; }
     .rsvp .message.success { background: #e9f5ec; color: #1c4d2a; border: 1px solid #9ccaa8; }
@@ -100,7 +113,7 @@
         <button type="submit" class="button">Find my invitation</button>
       </form>
 
-      <form id="household-form" hidden>
+      <form id="household-form" hidden novalidate>
         <p id="household-intro"></p>
         <div id="people"></div>
         <div class="field">

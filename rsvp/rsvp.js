@@ -94,24 +94,27 @@
     });
   }
 
+  // One row per guest: name on the left, Accepts / Declines on the right.
   function personFields(m, i) {
-    var fs = el('fieldset', { className: 'person' });
-    fs.dataset.first = m.first;
-    fs.dataset.last = m.last;
-    fs.appendChild(el('legend', { textContent: m.first + ' ' + m.last }));
+    var row = el('div', { className: 'person' });
+    row.dataset.first = m.first;
+    row.dataset.last = m.last;
+    var nameId = 'guest-' + i;
+    row.appendChild(el('span', { className: 'person-name', id: nameId, textContent: m.first + ' ' + m.last }));
 
-    var choices = el('div', { className: 'choices', role: 'radiogroup' });
-    choices.setAttribute('aria-label', 'Will ' + m.first + ' attend?');
-    [['yes', 'Joyfully accepts'], ['no', 'Regretfully declines']].forEach(function (opt) {
-      var input = el('input', { type: 'radio', name: 'attending-' + i, value: opt[0], required: true });
+    var choices = el('div', { className: 'choices' });
+    choices.setAttribute('role', 'radiogroup');
+    choices.setAttribute('aria-labelledby', nameId);
+    [['yes', 'Accepts'], ['no', 'Declines']].forEach(function (opt) {
+      var input = el('input', { type: 'radio', name: 'attending-' + i, value: opt[0] });
       input.checked = m.attending === opt[0];
-      var label = el('label');
+      var label = el('label', { className: 'choice' });
       label.appendChild(input);
-      label.appendChild(document.createTextNode(opt[1]));
+      label.appendChild(el('span', { textContent: opt[1] }));
       choices.appendChild(label);
     });
-    fs.appendChild(choices);
-    return fs;
+    row.appendChild(choices);
+    return row;
   }
 
   function el(tag, props) {
@@ -141,6 +144,13 @@
   householdForm.addEventListener('submit', function (e) {
     e.preventDefault();
     var responses = collect();
+    for (var i = 0; i < responses.length; i++) {
+      if (!responses[i].attending) {
+        say('Please say whether ' + responses[i].first + ' ' + responses[i].last + ' will attend.');
+        people.querySelectorAll('.person')[i].querySelector('input').focus();
+        return;
+      }
+    }
     busy(householdForm, true);
     say('');
     call({ action: 'save', name: currentName, responses: responses, message: $('note').value })
@@ -173,6 +183,7 @@
     { household: 'demo-1', first: 'Alex', last: 'Sample', attending: '', message: '' },
     { household: 'demo-1', first: 'Jordan', last: 'Sample', attending: '', message: '' },
     { household: 'demo-1', first: 'Riley', last: 'Sample', attending: '', message: '' },
+    { household: 'demo-1', first: 'Casey', last: 'Sample', attending: '', message: '' },
     { household: 'demo-2', first: 'Pat', last: 'Example', attending: '', message: '' }
   ];
 
