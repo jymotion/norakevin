@@ -22,7 +22,8 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 ## Site structure
 
 - Shared styles in `style.css`, shared JS (phone menu, home page video) in `site.js`. Each page is a folder with `index.html` (`/schedule/`, `/travel/`, ...).
-- The top bar, masthead and nav are copied into every page (no build step). When the nav changes, update every page and move `aria-current="page"` to the right link.
+- The top bar, masthead, nav and footer are copied into every page (no build step). When the nav changes, update every page and move `aria-current="page"` to the right link.
+- Footer: Kevin's line-drawn heart (`images/heart.svg`, 10rem tall, decorative `alt=""`) in the bottom-right corner of every page, and it must never be visible without scrolling. `.page` is at least 100vh tall and `.site-footer` adds 40vh of empty space above the heart, so it always sits well below the fold.
 - Fonts are self-hosted in `fonts/` (OFL licenses alongside), so pages make no requests to Google Fonts.
 - Home page hero is a silent looping video (`video/hero.mp4`, `video/hero.webm` fallback, `video/hero-poster.jpg`). Kevin wants it non-interactive: no controls, no hover icons, no play/pause; keep `pointer-events: none` and no `controls` attribute. It is trimmed (0.876s to 9.051s) from a sample wedding film of another couple, cutting the parts showing their names and the videographer's watermark. Never commit the untrimmed clip. Swap in Nora & Kevin's own footage if they get some.
 - Home page is just nav, masthead (script, names, date and place) and the video. Kevin removed the "N days to go" countdown and, for now, the date/place/RSVP block that sat below the video (it's in git history if wanted back).

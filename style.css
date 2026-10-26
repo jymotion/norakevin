@@ -158,6 +158,22 @@ main { flex: 1; }
 
 .center { text-align: center; }
 
+/* ---- Footer heart ----
+   Always below the fold: .page is at least one screen tall (min-height:
+   100vh, which on phones is the tallest viewport, so even with the address
+   bar showing), and the footer adds more empty space after it, with the
+   heart in its bottom-right corner. */
+
+.site-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  /* 40% of a screen of empty space above the heart (10rem) and its padding. */
+  min-height: calc(40vh + 11.5rem);
+  padding: 0 1.5rem 1.5rem;
+}
+.site-footer img { width: auto; height: 10rem; }
+
 /* ---- Phones ---- */
 
 @media (max-width: 760px) {
