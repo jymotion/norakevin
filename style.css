@@ -159,20 +159,19 @@ main { flex: 1; }
 .center { text-align: center; }
 
 /* ---- Footer heart ----
-   Always below the fold: .page is at least one screen tall (min-height:
+   Hidden just below the fold: .page is at least one screen tall (min-height:
    100vh, which on phones is the tallest viewport, so even with the address
-   bar showing), and the footer adds more empty space after it, with the
-   heart in its bottom-right corner. */
+   bar showing), and the footer after it is only as tall as the heart, its
+   offset from the corner, and a 1rem gap above it. It's a background image,
+   so it can't be dragged, selected or saved like a picture. */
 
 .site-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-  /* 40% of a screen of empty space above the heart (10rem) and its padding. */
-  min-height: calc(40vh + 11.5rem);
-  padding: 0 1.5rem 1.5rem;
+  --heart-size: 7rem;
+  --heart-inset: 2.75rem;
+  height: calc(var(--heart-size) + var(--heart-inset) + 1rem);
+  background: url("/images/heart.svg") no-repeat
+    right var(--heart-inset) bottom var(--heart-inset) / auto var(--heart-size);
 }
-.site-footer img { width: auto; height: 10rem; }
 
 /* ---- Phones ---- */
 
