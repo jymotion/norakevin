@@ -5,9 +5,9 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 ## Fill in (TODO)
 
 - Date: Saturday, September 18, 2027
-- Venue(s): Philadelphia, PA (venue TBD)
+- Venue(s): Philadelphia, PA, Old City area. Ceremony and reception are at the same venue (name TBD), about 0.1 mi from 433 Chestnut St.
 - Domain: norakevin.com (apex; www.norakevin.com should redirect to it)
-- Events (ceremony, reception, rehearsal, welcome drinks, etc.):
+- Events (ceremony, reception, rehearsal, welcome drinks, etc.): welcome drinks (location TBD), ceremony & reception (same venue), afterparty (location TBD, 0.2–0.3 mi from the hotels).
 - RSVP deadline:
 - Meal choices, if any: none. Guests choose their food at the wedding, so the RSVP doesn't ask (no dietary question either).
 - Plus-one policy:
@@ -71,7 +71,8 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 
 - Home: names, date, location, short welcome
 - Schedule: each event with time, place, dress code
-- Travel & Stay: directions, parking, nearby lodging
+- Travel: directions, parking
+- Hotels (`hotels/index.html`, its own page in the nav after Travel): one section per hotel with address, room rates, check-in time, distances to each event, a "Book a room" button (hotel block link) and the hotel's website. Currently Kimpton Hotel Monaco and Renaissance Philadelphia Downtown. Keep number+unit and "label · value" together with `&nbsp;` so lines don't break awkwardly on small phones.
 - RSVP: custom form (see above) plus fallback contact line
 - Registry: link to Zola
 - FAQ
@@ -85,3 +86,4 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 - [ ] Repo contains no guest data (check history too)
 - [ ] Spot-check on a small phone and a large desktop screen
 - [ ] No `class="tbd"` placeholders left on any page
+- [ ] Click every hotel "Book a room" and website link (Marriott and IHG block automated checks, so test in a browser)
