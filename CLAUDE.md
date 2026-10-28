@@ -71,7 +71,7 @@ Static wedding website for Nora & Kevin. Guests use it to get event details, RSV
 
 - Home: names, date, location, short welcome
 - Schedule: each event with time, place, dress code
-- Travel: directions, parking
+- Travel (`travel/index.html`): "From PHL Airport" and "From Amtrak 30th Street Station" (taxi, Uber/Lyft, SEPTA train to Jefferson Station, 0.6 mi from the hotels), then Parking (TBD). Uses the same `.facts` label/value list as Hotels.
 - Hotels (`hotels/index.html`, its own page in the nav after Travel): one section per hotel with address, room rates, check-in time, distances to each event, a "Book a room" button (hotel block link) and the hotel's website. Currently Kimpton Hotel Monaco and Renaissance Philadelphia Downtown. Hotels sit side by side at 860px+ (the page uses `.content.wide`, 64rem) and stack on phones. Each has a 3:2 photo on top, saved in `images/hotels/` (never hot-linked from hotel sites, so visitors' browsers don't contact them); the Kimpton exterior comes from monaco-philadelphia.com, the Renaissance exterior was supplied by Kevin. Distances are listed in event order: welcome drinks, ceremony & reception, afterparty. Keep number+unit and "label · value" together with `&nbsp;` so lines don't break awkwardly on small phones.
 - RSVP: custom form (see above) plus fallback contact line
 - Registry: link to Zola
