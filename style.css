@@ -215,7 +215,13 @@ main { flex: 1; }
 
 /* ---- Travel ---- */
 
-.travel { display: grid; gap: 2.75rem; }
+/* Airport and train station side by side on wider screens (like Hotels);
+   Parking spans the full width below them. */
+.travel { display: grid; gap: 2.75rem 3rem; }
+@media (min-width: 860px) {
+  .travel { grid-template-columns: 1fr 1fr; }
+  .travel-full { grid-column: 1 / -1; }
+}
 .travel h2 { margin-bottom: 0.9rem; }
 .travel .facts { margin-bottom: 0; }
 
