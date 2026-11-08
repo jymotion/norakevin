@@ -202,7 +202,7 @@ main { flex: 1; }
 @media (min-width: 860px) {
   .hotels { grid-template-columns: 1fr 1fr; }
 }
-.hotel-photo {
+.hotel-photo, .travel-photo {
   display: block;
   width: 100%;
   height: auto;
