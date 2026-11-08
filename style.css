@@ -231,12 +231,11 @@ main { flex: 1; }
 
 /* ---- Travel ---- */
 
-/* Airport and train station side by side on wider screens (like Hotels);
-   Parking spans the full width below them. */
+/* Sections (airport, train station, each parking option) two per row on
+   wider screens, like Hotels; stacked on phones. */
 .travel { display: grid; gap: 2.75rem 3rem; }
 @media (min-width: 860px) {
   .travel { grid-template-columns: 1fr 1fr; }
-  .travel-full { grid-column: 1 / -1; }
 }
 .travel h2 { margin-bottom: 0.9rem; }
 .travel .facts { margin-bottom: 0; }
