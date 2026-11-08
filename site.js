@@ -27,8 +27,23 @@
   var video = document.querySelector('.hero-video');
   if (video && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
     video.muted = true;
-    var playing = video.play();
-    // If the browser refuses (e.g. iPhone Low Power Mode), the poster stays.
-    if (playing && playing.catch) playing.catch(function () {});
+    // Some browsers refuse to start video until the visitor has interacted with
+    // the page (strict autoplay settings, iPhone Low Power Mode). The poster
+    // shows meanwhile, and the first tap, click or key press starts it.
+    var events = ['pointerdown', 'touchstart', 'keydown'];
+    var stopListening = function () {
+      events.forEach(function (t) { document.removeEventListener(t, tryPlay, true); });
+    };
+    var tryPlay = function () {
+      var playing = video.play();
+      if (playing && playing.then) playing.then(stopListening, function () {});
+    };
+    events.forEach(function (t) { document.addEventListener(t, tryPlay, true); });
+    tryPlay();
+    // Backup for the loop attribute: if a browser stops at the end, restart.
+    video.addEventListener('ended', function () {
+      video.currentTime = 0;
+      tryPlay();
+    });
   }
 })();

@@ -104,8 +104,11 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--ink); outline-o
 .hero img, .hero video, .hero-placeholder { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
 
 /* The home page video is decoration only: no controls, no hover icons, and
-   clicks/taps pass straight through it. */
-.hero video { aspect-ratio: 16 / 9; background: #000; pointer-events: none; user-select: none; }
+   clicks/taps pass straight through it. The box matches the footage's own
+   shape (1280×898) and nothing is cropped, so the film frame's dark border and
+   rounded corners always show, at every width. Update the ratio if the video
+   is re-cut at another size. */
+.hero video { aspect-ratio: 1280 / 898; object-fit: contain; background: #000; pointer-events: none; user-select: none; }
 .hero video::-webkit-media-controls,
 .hero video::-webkit-media-controls-start-playback-button,
 .hero video::-webkit-media-controls-overlay-play-button { display: none !important; -webkit-appearance: none; }
@@ -319,7 +322,7 @@ main { flex: 1; }
   .js .site-nav a { font-size: 1.4rem; padding: 0.6rem 1rem; }
 
   .hero { padding: 0; }
-  .hero img, .hero video, .hero-placeholder { aspect-ratio: 4 / 3; }
+  .hero img, .hero-placeholder { aspect-ratio: 4 / 3; }
 
   .masthead { padding-top: 2.5rem; }
   .names { margin: 0.25rem 0 0.75rem; }
