@@ -25,6 +25,23 @@
   // Home page video: starts silently and loops. Visitors whose device asks
   // for reduced motion see the still poster image instead.
   var video = document.querySelector('.hero-video');
+
+  // Measure whichever header stays pinned at the top (nav bar on desktop, top
+  // bar on phones) so the video can size itself to fit the screen below it.
+  if (video) {
+    var setHeaderHeight = function () {
+      var h = 0;
+      ['.site-nav', '.topbar'].forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (el && getComputedStyle(el).position === 'sticky') h = Math.max(h, el.offsetHeight);
+      });
+      document.documentElement.style.setProperty('--header-h', h + 'px');
+    };
+    setHeaderHeight();
+    window.addEventListener('resize', setHeaderHeight);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(setHeaderHeight);
+  }
+
   if (video && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
     video.muted = true;
     // Some browsers refuse to start video until the visitor has interacted with

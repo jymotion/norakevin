@@ -109,6 +109,19 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--ink); outline-o
    rounded corners always show, at every width. Update the ratio if the video
    is re-cut at another size. */
 .hero video { aspect-ratio: 1280 / 898; object-fit: contain; background: #000; pointer-events: none; user-select: none; }
+/* Never taller than the screen below the sticky header (nav bar on desktop,
+   top bar on phones), so the whole frame fits on short laptop screens too:
+   the width shrinks to keep the shape. site.js measures the header into
+   --header-h; the fallback roughly matches it if scripts don't run. */
+.hero video {
+  display: block;
+  margin-inline: auto;
+  --fit-h: calc(100vh - var(--header-h, 3.5rem) - 1rem);
+  width: min(100%, calc(var(--fit-h) * 1280 / 898));
+}
+@supports (height: 100svh) {
+  .hero video { --fit-h: calc(100svh - var(--header-h, 3.5rem) - 1rem); }
+}
 .hero video::-webkit-media-controls,
 .hero video::-webkit-media-controls-start-playback-button,
 .hero video::-webkit-media-controls-overlay-play-button { display: none !important; -webkit-appearance: none; }
