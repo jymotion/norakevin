@@ -254,7 +254,6 @@ main { flex: 1; }
   text-transform: uppercase;
 }
 .facts dd { grid-column: 2; margin: 0; }
-.facts .facts-note { color: var(--muted); }
 @media (max-width: 760px) {
   .facts > div { grid-template-columns: 6rem 1fr; column-gap: 0.75rem; }
 }
