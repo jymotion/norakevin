@@ -173,6 +173,7 @@ main { flex: 1; }
 }
 
 .center { text-align: center; }
+.nowrap { white-space: nowrap; }
 
 /* ---- Questions and answers (FAQ) ---- */
 
